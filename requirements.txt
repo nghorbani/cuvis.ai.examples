@@ -1,0 +1,14 @@
+cuvis==3.3.2
+lightning==2.5.1
+matplotlib==3.10.1
+numpy==2.2.4
+opencv_python==4.11.0.86
+pytorch_lightning==2.5.1
+PyYAML==6.0.2
+scikit_learn==1.6.1
+sympy==1.13.1
+tensorboard==2.19.0
+torch==2.6.0+cu124
+torchmetrics==1.6.1
+torchvision==0.21.0+cu124
+tqdm==4.67.1
