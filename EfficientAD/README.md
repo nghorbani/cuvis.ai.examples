@@ -15,8 +15,8 @@ which are divided into normal and anomalous images. We used sawdust in a wooden 
 the model could lean. As anomalies, we used PLA, alcohol, leaves, a fake leaf, PET, POMC, transparent plastic
 foil as well as water to demonstrate the capabilities of our SWIR setup.
 
-The dataset can be
-downloaded [here](https://drive.google.com/drive/folders/1bTNNSiFBQdPLgFlt3DHt06KmShmeTftj?usp=drive_link).
+
+The dataset and pretrained model weights can be downloaded [here](https://drive.google.com/drive/folders/1bTNNSiFBQdPLgFlt3DHt06KmShmeTftj?usp=drive_link).
 
 Notes on what the validation images show can be found in the ``dataset_notes.md``
 
@@ -78,7 +78,9 @@ reporting.py -c example_report_config.yaml
 
 ## Results
 
-With the given model weights and dataset, we reached a (INPUT AUROC HERE) image-AUROC. The detection of all
+
+With the given model weights and dataset, we reached a 0.93 image-AUROC. The detection of all
 substances was very good, and we are pleased with the results.
 
-![inference result](../pictures/inference.png)
+![inference result](../pictures/inference.jpg)
+
