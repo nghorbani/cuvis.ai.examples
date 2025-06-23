@@ -57,7 +57,7 @@ class EfficientADCuvisDataSet(Dataset):
             self.gt = {}
             for file_path in self.file_paths:
                 if "_ok_ok_" not in file_path:
-                    self.gt[file_path] = file_path.replace(".cu3s", "_mask.png").replace("test", "ground_truth")
+                    self.gt[file_path] = file_path.replace(".cu3s", "_0_RGB_mask.png")
 
         self.transform = v2.Compose([
             v2.Lambda(torch.as_tensor),
@@ -98,7 +98,6 @@ class EfficientADCuvisDataSet(Dataset):
 
             mesu = self.proc.apply(mesu)
         cube = mesu.data["cube"].array
-
         cube = cube[300:-300, 300:-300,:] # cut the border of the image to exclude the tray borders
         cube = np.transpose(cube, (2, 0, 1))  # transpose from H x W x C to C x H x W for torch
         cube = torch.from_numpy(cube)
@@ -132,9 +131,11 @@ class EfficientADCuvisDataSet(Dataset):
             else:
                 defect = Path(file_path).parent.name
                 if os.path.exists(self.gt[file_path]):
-                    mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)
-                    mask = mask > 0
+                    mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[300:-300, 300:-300] # Crop the mask
                     mask = torch.from_numpy(mask)
+                    mask = mask.unsqueeze(0)
+                    mask_out = torchvision.transforms.Resize(size=cube.shape[1:], interpolation=torchvision.transforms.InterpolationMode.NEAREST)(mask).squeeze(0) # Resize it in the same way
                 else:
-                    mask = torch.zeros(cube.shape[-2:], dtype=torch.bool)
-                return {"image": cube, "label": 1, "mask": mask, "defect": defect}
+                    print(f'NO GT DATA AVAILABLE for cube: {file_path}')
+                    mask_out = torch.zeros(cube.shape[-2:], dtype=torch.bool)
+                return {"image": cube, "label": 1, "mask": mask_out, "defect": defect}
