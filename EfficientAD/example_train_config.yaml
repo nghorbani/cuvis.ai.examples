@@ -22,11 +22,11 @@ white_percentage: 0.55 # Diffuse reflectance of the white target used as referen
 ### MODEL ###
 Model:
   checkpoints: best_teacher_6_channel.pth # checkpoint of the pretrained teacher
-  model_size: medium # wich model size to use, either 'medium' or 'small'
+  model_size: medium # which model size to use, either 'medium' or 'small'
   batch_size: 1 # this should always be 1 for EfficientAD
   channel_size: 384 # number of teacher output channels
   in_channels: 6 # number of input channels to the model
-  use_imgNet_penalty: True # weather to use the imageNet loss penalty in training
+  use_imgNet_penalty: True # whether to use the imageNet loss penalty in training
 learning_rate: 0.0001
 weight_decay: 0.0001
 max_steps: 70000
