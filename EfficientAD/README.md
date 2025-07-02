@@ -15,14 +15,15 @@ which are divided into normal and anomalous images. We used sawdust in a wooden 
 the model could lean. As anomalies, we used PLA, alcohol, leaves, a fake leaf, PET, POMC, transparent plastic
 foil as well as water to demonstrate the capabilities of our SWIR setup.
 
-
-The dataset and pretrained model weights can be downloaded [here](https://drive.google.com/drive/folders/1bTNNSiFBQdPLgFlt3DHt06KmShmeTftj?usp=drive_link).
+The dataset and pretrained model weights can be
+downloaded [here](https://drive.google.com/drive/folders/1bTNNSiFBQdPLgFlt3DHt06KmShmeTftj?usp=drive_link).
 
 Notes on what the validation images show can be found in the ``dataset_notes.md``
 
 ## Model
 
-We chose to go with the [EfficientAD](https://arxiv.org/pdf/2303.14535v3) model since it is an exciting, state-of-the-art
+We chose to go with the [EfficientAD](https://arxiv.org/pdf/2303.14535v3) model since it is an exciting,
+state-of-the-art
 model in anomaly detection.
 
 As a base to build our implementation on, we used the EfficientAD code
@@ -68,9 +69,10 @@ the `inference.ipynb` notebook.
 
 ## How to create a report for the model and dataset
 
-You can use `the report.py` in order to create a report of the model performance and generate a visual representation of
+You can use the `report.py` in order to create a report of the model performance and generate a visual representation of
 the outcome.
-The script will create a folder at a specified location, infer the given datasets, and create a visually pleasing output.
+The script will create a folder at a specified location, infer the given datasets, and create a visually pleasing
+output.
 
 ```
 reporting.py -c example_report_config.yaml
@@ -78,9 +80,15 @@ reporting.py -c example_report_config.yaml
 
 ## Results
 
+With the given model weights and dataset, we reached a 0.93 image-AUROC and a 0.91 pixel-AUROC. Most of the anomalies
+were detected correctly, only some were hardly detectable by the model.
 
-With the given model weights and dataset, we reached a 0.93 image-AUROC. The detection of all
-substances was very good, and we are pleased with the results.
+![inference ROC](../pictures/AUROC_Class.jpg)
+Inference ROC over all classes present in our validation dataset.
 
 ![inference result](../pictures/inference.jpg)
+Here we can see a detection result for an image with mixed PLA cubes ranging in size and color. We can see that the
+bigger cubes are easily detected, while the smallest cubes (2mm) are only detected with higher thresholds. Also for
+black PLA only the edges of the cube are detected.
 
+Both images were created by the `report.py` script.
