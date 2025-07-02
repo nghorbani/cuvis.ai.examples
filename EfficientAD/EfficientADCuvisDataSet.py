@@ -127,7 +127,7 @@ class EfficientADCuvisDataSet(Dataset):
             return self.transform({"image": cube, "imgNet_img": imgNet_img})
         else:
             if "_ok_ok_" in file_path:
-                return {"image": cube, "label": 0, "mask": torch.zeros(cube.shape[-2:], dtype=torch.bool), "defect": "good"}
+                return {"image": cube, "label": 0, "mask": torch.zeros(cube.shape[-2:]), "defect": "good"}
             else:
                 defect = Path(file_path).parent.name
                 if os.path.exists(self.gt[file_path]):
@@ -137,5 +137,5 @@ class EfficientADCuvisDataSet(Dataset):
                     mask_out = torchvision.transforms.Resize(size=cube.shape[1:], interpolation=torchvision.transforms.InterpolationMode.NEAREST)(mask).squeeze(0) # Resize it in the same way
                 else:
                     print(f'NO GT DATA AVAILABLE for cube: {file_path}')
-                    mask_out = torch.zeros(cube.shape[-2:], dtype=torch.bool)
+                    mask_out = torch.zeros(cube.shape[-2:])
                 return {"image": cube, "label": 1, "mask": mask_out, "defect": defect}
