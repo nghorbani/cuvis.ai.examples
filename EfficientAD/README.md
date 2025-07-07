@@ -1,9 +1,8 @@
-# Simple anomaly detection example
+# Multispectral Anomaly detection example
 
 ## Introduction
 
-In this example, an anomaly detection model is trained outside cuvis.ai and inference is done using cuvis.ai.
-Since cuvis.ai was not yet ready to train models with, it had to be done separately.
+In this example, an anomaly detection model is trained and infered on multispectral images using cuvis.ai.
 
 ## The dataset
 
