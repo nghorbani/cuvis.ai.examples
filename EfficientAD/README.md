@@ -1,4 +1,4 @@
-# Multispectral Anomaly detection example
+# Multispectral Anomaly Detection Example
 
 ## Introduction
 
@@ -11,8 +11,8 @@ a 24-megapixel RGB-camera and the other three are SWIR channels with 1050nm, 120
 
 The dataset is precisely built for unsupervised multispectral anomaly detection. It features 255 images,
 which are divided into normal and anomalous images. We used sawdust in a wooden tray to create unique images on which
-the model could lean. As anomalies, we used PLA, alcohol, leaves, a fake leaf, PET, POMC, transparent plastic
-foil as well as water to demonstrate the capabilities of our SWIR setup.
+the model can learn. As anomalies, we used PLA, leaves, a fake leaf, PET, POMC, transparent plastic
+foil as well as water and alcohol to demonstrate the capabilities of our SWIR setup.
 
 The dataset and pretrained model weights can be
 downloaded [here](https://drive.google.com/drive/folders/1bTNNSiFBQdPLgFlt3DHt06KmShmeTftj?usp=drive_link).
@@ -21,14 +21,14 @@ Notes on what the validation images show can be found in the ``dataset_notes.md`
 
 ## Model
 
-We chose to go with the [EfficientAD](https://arxiv.org/pdf/2303.14535v3) model since it is an exciting,
+We chose to go with the [EfficientAD](https://arxiv.org/pdf/2303.14535v3) model since it is a very fast and highly capable 
 state-of-the-art
 model in anomaly detection.
 
 As a base to build our implementation on, we used the EfficientAD code
 of [Anomlaib](https://github.com/openvinotoolkit/anomalib). In order to make it work with more than three channels, the
 input layers of the model, as well as the given teacher checkpoint, were adapted. The input layer of the model was
-simply expanded to accept 6-channel images. The teacher weights and biases were duplicated and then divided by two to
+expanded to accept 6-channel images. The teacher weights and biases were duplicated and then divided by two to
 get a 6-channel representation of the teacher. We halved the weights and biases of the teacher in order not to get the
 same activation strength out of six channels as we would get out of three channels.
 
