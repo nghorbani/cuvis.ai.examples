@@ -1,0 +1,31 @@
+name: Testrun # name of the training run, will be used in saving and logging
+
+### DATASETS ###
+Datasets:
+  train:
+    root: ../data/bedding_dataset/exported/train
+  eval:
+    root: ../data/bedding_dataset/exported/val
+  
+normalize: True # weather to normalize the data or not before putting it through the network
+mean: [ 0.31257936, 0.43269954, 0.50889452, 0.64886759, 0.5958548, 0.39783356 ] # calculated mean per channel for the given dataset
+std: [ 0.13495414, 0.17394394, 0.19844727, 0.21376508, 0.19457226, 0.13772688 ] # calculated standard deviation per channel for the given dataset
+channels: ALL # which channels to use, 'ALL' for 6 channel models, 'RGB' or 'SWIR' for 3 channel models
+max_img_shape: 1000 # reduce maximum img shape to stay within memory capacity of the used GPU
+white_percentage: 0.55 # Diffuse reflectance of the white target used as reference for the reflectance calculation
+
+### MODEL ###
+Model:
+  use_large: true # whether to use the large network size
+  encoding_dim: 1 # dimension of the encoding dimension
+  in_channels: 6 # number of input channels to the model
+  loss: "Hybrid" # Loss function to use, either "MSE", "SAM", or "Hybrid"
+learning_rate: 0.001
+max_epochs: 40 # number of epochs to train the model for
+batch_size: 4 # maximum number of datacubes to load in each batch
+seed: 42
+use_tensorboard: true # whether to use the Tensorboard GUI
+
+### TRAINING ###
+ckpt_dir: ../data/checkpoints # where to save the checkpoints for this run
+logger_dir: ../data/logs # where to save the logs for this run

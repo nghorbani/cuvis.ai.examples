@@ -1,14 +1,8 @@
 import pathlib
-
-import lightning
 import numpy as np
-import torchmetrics.functional
-
-from EfficientADCuvisDataSet import EfficientADCuvisDataSet
+from PerPixelAECuvisDataSet import PerPixelAECuvisDataSet
 import yaml
 import torch
-import lightning as L
-from EfficientAD_lightning import EfficientAD_lightning
 from sklearn.metrics import roc_curve
 from matplotlib import pyplot as plt
 import argparse
@@ -21,6 +15,8 @@ import cv2 as cv
 import glob
 from sklearn.metrics import roc_curve, auc
 from collections import defaultdict
+from PerPixelAEModels import HybridLoss, CosSpectralAngleLoss, Autoencoder, AutoencoderSmall, create_skorch_model
+
 
 def get_arguments():
     parser = argparse.ArgumentParser()
@@ -38,18 +34,16 @@ def parse_args(args):
 class Report:
     """
     Class to create a report for a given dataset folder
-
+    
     Args:
         config(dict): parsed yaml configuration.
         model(torch.model): model to use to infer the data.
-        trainer(lightning.Trainer): lightning.Trainer class to use.
         reporting_root_folder(pathlib.Path): root folder where reportings should be saved
     """
 
-    def __init__(self, config: dict, model: torch.nn.Module, trainer: lightning.Trainer, reporting_root_folder: pathlib.Path):
+    def __init__(self, config: dict, model: torch.nn.Module, reporting_root_folder: pathlib.Path):
         self.config = config
         self.model = model
-        self.trainer = trainer
         self.mean = np.array(config['means'])
         self.std = np.array(config['stds'])
         self.plot_thresholds = config['plot_thresholds']
@@ -97,7 +91,7 @@ class Report:
 
         ValueError
             If the binary ground truth contains only one class (all 0s or all 1s), making ROC computation invalid.
-        """
+        """        
         assert len(anomaly_score_maps) == len(groundtruth_masks), "Mismatch in number of images"
         # In this scenario, convert pixels to binary values
         groundtruth_masks = groundtruth_masks > 0
@@ -159,8 +153,7 @@ class Report:
                     score_map = (score_map - score_min) / denom
                 else:
                     score_map = np.zeros_like(score_map)  # handle constant maps
-            if len(np.unique(gt_mask)) > 2:
-                continue  # remove mixed images
+
             for cls in np.unique(gt_mask):
                 if cls == 0:
                     continue  # skip background
@@ -168,7 +161,7 @@ class Report:
                 mask = (gt_mask == cls)
                 class_scores[cls].append(score_map[mask])
                 class_truths[cls].append(np.ones(np.count_nonzero(mask)))
-                # Add negative samples
+                # Add negative samples from other classes
                 neg_mask = (gt_mask == 0)
                 class_scores[cls].append(score_map[neg_mask])
                 class_truths[cls].append(np.zeros(np.count_nonzero(neg_mask)))
@@ -186,7 +179,6 @@ class Report:
             if len(np.unique(y_true)) < 2:
                 print(f"Skipping class {cls}: insufficient positive/negative pixels")
                 continue
-
             fpr, tpr, _ = roc_curve(y_true, y_scores)
             roc_auc = auc(fpr, tpr)
             aucs[cls] = roc_auc
@@ -223,41 +215,53 @@ class Report:
         metrics = {}
         all_labels = []
         all_truths = []
-        binary_truths = []
         all_scores = []
-        for dataset_path, labels_path in zip(config['datasets'], config['labels']):
+        for dataset_path in config['datasets']:
             data_path = Path(dataset_path)
             cubes = glob.glob(str(data_path/ "*" / "*.cu3s"))
             cube_names = [Path(image).name for image in cubes]
-            # Load only the PNG masks associated with the labels
             dataset_name = data_path.name
 
             # create dataset and infer the cubes
-            dataset = EfficientADCuvisDataSet(config["datasets"][0],
-                                              mode="test",
-                                              mean=config["means"],
-                                              std=config["stds"],
-                                              normalize=config["normalize"],
-                                              max_img_shape=config["max_img_shape"],)
+            dataset = PerPixelAECuvisDataSet(os.path.realpath(config["datasets"][0]),
+                                        mode="test",
+                                        mean=config["means"],
+                                        std=config["stds"],
+                                        normalize=config["normalize"],
+                                        max_img_shape=config["max_img_shape"],
+                                        white_percentage=config["white_percentage"],
+                                        channels=config["channels"])
             test_loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
-            pred = self.trainer.predict(self.model, test_loader)
-
+            pred = []
+            for item in tqdm.tqdm(test_loader):
+                try:
+                    res = model.predict(item["image"])
+                    # Calculate error maps here
+                    cube_shape = item["dims"]
+                    anomaly_map = np.linalg.norm(res.reshape(cube_shape) - item["image"].numpy().reshape(cube_shape), axis=0)
+                    pred.append({
+                        "anomaly_map": anomaly_map,
+                        "label": item["label"],
+                        "mask": item["mask"],
+                        "defect": item["defect"]
+                    })
+                except Exception as e:
+                    print(e)
             max_pred = 0
             labels = []
             scores = []
             for p in pred:
                 # Labels are the binary anomalous or not
                 labels.extend(p["label"])
-                #if p["label"] is not np.nan: all_labels.extend(p["label"])
+                if p["label"] is not np.nan: all_labels.extend(p["label"])
                 # anomaly map is the numerical value of reconstruction errors generated by the network
-                score = torch.max(p["anomaly_map"])
+                score = np.max(p["anomaly_map"])
                 scores.append(score)
-                all_scores.append(p["anomaly_map"].squeeze(0).squeeze(0).detach().cpu().numpy())
+                all_scores.append(p["anomaly_map"])
                 # Append the corresponding image label
-                all_truths.append(p["mask"].squeeze(0).numpy())
-                binary_truths.append(p["mask"].squeeze(0).numpy() > 0)
-                if p["anomaly_map"].max().item() > max_pred:
-                    max_pred = p["anomaly_map"].max().item()
+                all_truths.append(p["mask"].squeeze(0))
+                if np.max(p["anomaly_map"]) > max_pred:
+                    max_pred = np.max(p["anomaly_map"])
             if self.create_images:
                 for j, batch in enumerate(tqdm.tqdm(test_loader, desc=f"creating images")):
                     rel_path = Path(cubes[j]).relative_to(dataset_path)
@@ -268,20 +272,13 @@ class Report:
                     inference_image.savefig(target_folder / (cube_names[j] + ".png"))
                     plt.close(inference_image)
         if self.create_roc:
-            fpr, tpr, roc_auc = self.plot_pixel_level_roc(np.array(all_scores), np.array(all_truths), normalize= False)
-            class_aucs = self.plot_per_class_pixel_roc(np.array(all_scores).astype(np.float32), np.array(all_truths).astype(np.float32), class_map=self.annotations, normalize= False)
-
-            one_hot_pred = torch.nn.functional.one_hot(torch.softmax(torch.tensor(all_scores), -1).type(torch.long), num_classes=2).movedim(-1, 1)
-            one_hot_gt = torch.nn.functional.one_hot(torch.tensor(binary_truths).type(torch.long), num_classes=2).movedim(-1, 1)
-
-            dice_score = torchmetrics.functional.dice(one_hot_pred, one_hot_gt)
-
+            fpr, tpr, roc_auc = self.plot_pixel_level_roc(np.array(all_scores), np.array(all_truths))
+            class_aucs = self.plot_per_class_pixel_roc(np.array(all_scores).astype(np.float32), np.array(all_truths).astype(np.float32), class_map=self.annotations)
             metrics[dataset_name] = {
                 'overall_auc': float(roc_auc),
-                'per_class_auc': class_aucs,
-                'dice_score': float(dice_score)
+                'per_class_auc': class_aucs
             }
-
+        
         with open(self.reporting_run_folder / "metrics.yaml", "w") as f:
             yaml.dump(metrics, f)
 
@@ -389,7 +386,20 @@ class Report:
 if __name__ == "__main__":
     args = get_arguments()
     config = parse_args(args)
-    model = EfficientAD_lightning.load_from_checkpoint(config["checkpoint_to_load"], config=config)
-    trainer = L.Trainer(inference_mode=True, precision='16-mixed')
-    rep = Report(config, model, trainer, Path("../data/EAD_reporting/"))
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f'Using {device} for pytorch models...')
+    model = create_skorch_model(
+                    device=device,
+                    encoding_dim=config["Model"]["encoding_dim"],
+                    wave=config["Model"]["in_channels"],
+                    large=config["Model"]["use_large"],
+                    loss=config["Model"]["loss"],
+                    use_tensorboard=config["use_tensorboard"],
+                    max_epochs=config["max_epochs"],
+                    lr=config["learning_rate"],
+                    batch_size=config["batch_size"]
+                    )
+    model.initialize()
+    model.load_params(f_params='./runs/final_ae.wts')
+    rep = Report(config, model, Path("../data/PerPixelAE_reporting/"))
     rep.generate_report()
