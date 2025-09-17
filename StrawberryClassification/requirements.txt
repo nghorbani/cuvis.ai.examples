@@ -1,0 +1,14 @@
+cuvis~=3.4.0.post1
+cuvis_ai
+lightning
+matplotlib
+numpy
+opencv_python
+PCAonGPU
+pytorch_lightning
+PyYAML
+tensorboard
+torch
+torchmetrics
+torchvision
+tqdm
