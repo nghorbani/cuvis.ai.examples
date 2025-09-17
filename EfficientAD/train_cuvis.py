@@ -67,9 +67,6 @@ def train(config):
 
     trainer.fit(model, train_loader, test_loader)
 
-    # TODO: find a way to cleanly exit cuvis
-
-
 if __name__ == "__main__":
     args = get_arguments()
     config = parse_args(args)

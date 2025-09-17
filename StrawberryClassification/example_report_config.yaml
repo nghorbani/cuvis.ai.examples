@@ -1,0 +1,35 @@
+name: example_report_name # name of the report
+
+### DATASET ###
+data_path: ../data/data/strawberry_dataset/swir
+normalize: False # whether to normalize the data or not before putting it through the network
+channels: ALL # which channels to use, 'ALL' for 6 channel models, 'RGB' or 'SWIR' for 3 channel models
+max_img_shape: 1000 # make this the same size the model was trained with
+num_classes: 3
+white_path: "../data/Strawberry/swir_dataset/ref/white_001.cu3s"
+dark_path: "../data/Strawberry/swir_dataset/ref/dark_002.cu3s"
+pca_channels: 32
+cube_channels: 38
+cube_size: [ 200,200 ]
+sides_to_exclude: [ ]
+days_to_exclude: [ 28 ]
+strawberry_range: [ 0,220 ]
+cube_rgb_channels: [ 4,12,25 ]
+mean: [ ] # mean and std are neither used nor provided for this example. But you could calculate and use them to normalize the data.
+std: [ ]
+batch_size: 1
+num_workers: 0 # Number of workers to use for the torch.DataLoader. Please read note in main README before changing.
+
+### MODEL ###
+seed: 42
+ckpt_dir: ../data/ckpts # directory where the checkpoints were saved
+checkpoint_to_load: ../data/ckpts/example_train_name/strawberry_unet.ckpt # path to the model checkpoint which should be used for interference
+
+### REPORT ###
+create_images: true # whether to create inference and overlay images
+plot_thresholds: [ 0.9, 0.0 ] # which thresholds to plot
+representations: { "RGB": [ 4,12,25 ] } # which channels to use for a representation, can be multiple lists of 3 channels [R,G,B]
+dpi: 150 # dpi for the created images
+task: segmentation # which task the model is performing, This is needed in order to use the right functions. currently supports "segmentation" and "anomaly". Beware "anomaly" is not tested at the moment
+class_map: [ Background, Strawberry, Bruise ] # List of names for the labels. First name corresponds to label "0", second to label "1",...
+metrics_to_calc: [ auroc, dice, per_class_dice ] # which metrics to calculate, see the Enum in the Reporting class to find out which are implemented
