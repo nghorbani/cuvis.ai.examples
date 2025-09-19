@@ -18,13 +18,22 @@ def _reduce_tensor_elems(tensor: torch.Tensor, m: int = 2 ** 24) -> torch.Tensor
 
 @MODELS.register("efficientad.MediumLightning")
 class EfficientADLightning(pl.LightningModule):
-    def __init__(self, backbones_type: str = "efficientad.MediumBackbones", in_channels: int = 6, learning_rate: float = 1e-4, weight_decay: float = 1e-5, checkpoints: str | None = None, use_imgNet_penalty: bool = False):
+    def __init__(self, backbones_type: str = "efficientad.MediumBackbones", in_channels: int = 6, learning_rate: float = 1e-4, weight_decay: float = 1e-5, checkpoints: str | None = None, use_imgNet_penalty: bool = False, loss: dict | None = None, preprocessing: dict | None = None):
         super().__init__()
         backbones_cls = MODELS.get(backbones_type)
         self.backbones = backbones_cls(in_channels=in_channels)
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.use_imgNet_penalty = use_imgNet_penalty
+
+        loss = loss or {}
+        self.st_weight = float(loss.get("st_weight", 1.0))
+        self.ae_weight = float(loss.get("ae_weight", 1.0))
+        self.imgnet_penalty_weight = float(loss.get("imgnet_penalty_weight", 0.0))
+
+        pre = preprocessing or {}
+        self.compute_teacher_stats = bool(pre.get("compute_teacher_stats", True))
+        self.compute_percentile_quantiles = bool(pre.get("compute_percentile_quantiles", True))
 
         self.student = self.backbones.student
         self.teacher = self.backbones.teacher
@@ -90,12 +99,12 @@ class EfficientADLightning(pl.LightningModule):
         recon = self.ae(x, (img_h, img_w))
         loss_ae = (x - recon).pow(2).mean()
 
-        loss = loss_st + loss_ae
+        loss = self.st_weight * loss_st + self.ae_weight * loss_ae
 
         if self.use_imgNet_penalty and "imgNet_img" in batch and batch["imgNet_img"] is not None:
             imgnet = batch["imgNet_img"].to(x.dtype).to(x.device)
             r2 = (imgnet - self.ae(imgnet, imgnet.shape[-2:])).pow(2).mean()
-            loss = loss + 0.1 * (-r2)
+            loss = loss + self.imgnet_penalty_weight * (-r2)
 
         self.log("train/st", loss_st, on_epoch=True, prog_bar=True)
         self.log("train/ae", loss_ae, on_epoch=True, prog_bar=True)
@@ -103,7 +112,8 @@ class EfficientADLightning(pl.LightningModule):
         return loss
 
     def on_train_start(self) -> None:
-        self._compute_teacher_mean_std(self.trainer.train_dataloader)
+        if self.compute_teacher_stats:
+            self._compute_teacher_mean_std(self.trainer.train_dataloader)
 
     @torch.no_grad()
     def _compute_teacher_mean_std(self, dl: DataLoader) -> None:
@@ -127,7 +137,8 @@ class EfficientADLightning(pl.LightningModule):
         self.teacher_std = std.view(1, -1, 1, 1)
 
     def on_validation_start(self) -> None:
-        self._compute_quantiles(self.trainer.val_dataloaders)
+        if self.compute_percentile_quantiles and self.trainer.val_dataloaders is not None:
+            self._compute_quantiles(self.trainer.val_dataloaders)
 
     @torch.no_grad()
     def _compute_quantiles(self, dl: DataLoader) -> None:
