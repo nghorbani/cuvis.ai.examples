@@ -8,7 +8,14 @@ def main():
     token = os.environ.get("HF_TOKEN")
     if token:
         HfFolder.save_token(token)
-    snapshot_download(repo_id="nghorbani/Hyperspektral-Small", local_dir=str(out), allow_patterns=None, ignore_patterns=None, token=token)
+    snapshot_download(
+        repo_id="nghorbani/Hyperspektral-Small",
+        repo_type="dataset",
+        local_dir=str(out),
+        allow_patterns=None,
+        ignore_patterns=None,
+        token=token,
+    )
     print("Downloaded to:", out.resolve())
 
 if __name__ == "__main__":
