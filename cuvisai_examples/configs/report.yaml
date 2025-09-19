@@ -1,0 +1,10 @@
+defaults:
+  - eval: default
+  - reporter: default
+
+inputs:
+  preds_dir: ./work_dirs/exp/preds
+  gts_dir: ./work_dirs/exp/gts
+
+outputs:
+  out_dir: ./work_dirs/exp/reports
