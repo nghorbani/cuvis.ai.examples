@@ -11,7 +11,7 @@ seed: 42
 
 trainer:
   max_epochs: 1
-  accelerator: cpu
+  accelerator: cuda
 
 dataloader:
   batch_size: 1
