@@ -27,6 +27,23 @@ Train a UNet to classify strawberries and find bruises on them.
 - Report
   - uv run cuvisai-report eval=efficientad reporting=efficientad
 
+### Accelerator defaults
+- The default trainer accelerator is CUDA (with easy override). CPU training will be very slow.
+- Force GPU: add trainer.accelerator=cuda (and optionally trainer.devices=1)
+  - Example: uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cuda
+- Force CPU: trainer.accelerator=cpu
+
+### EfficientAD configurable losses and preprocessing
+- Loss weights:
+  - model.params.loss.st_weight: student-teacher loss weight (default 1.0)
+  - model.params.loss.ae_weight: autoencoder reconstruction loss weight (default 1.0)
+  - model.params.loss.imgnet_penalty_weight: ImageNet penalty weight (default 0.0; requires model.params.use_imgNet_penalty=true)
+- Preprocessing flags:
+  - model.params.preprocessing.compute_teacher_stats: compute teacher feature mean/std on train start (default true)
+  - model.params.preprocessing.compute_percentile_quantiles: compute percentile thresholds on val start using good samples (default true)
+- Example:
+  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 model.params.loss.ae_weight=0.5 model.params.preprocessing.compute_percentile_quantiles=false
+
 ## Environment variables
 - Copy .env.example to .env and edit values as needed:
   - cp .env.example .env
@@ -44,6 +61,11 @@ Notes
 
 ## Deprecated
 - EfficientAD/train_cuvis.py, PerPixelAE/train_cuvis.py, StrawberryClassification/train.py are deprecated. Use the CLIs above.
+
+## Architecture and Extensibility
+- See REGISTRY.md for how the registry system works and how to add models, datasets, losses, runners, evaluators, and reporters.
+- See MIGRATION.md to port old scripts to the new Hydra/registry-based library.
+- EfficientAD: only the Lightning training path is supported; torch-only trainer is removed. Backbones are provided via efficientad_torch and consumed by efficientad_lightning.
 
 ## Sample data (Hugging Face)
 - Prepare:

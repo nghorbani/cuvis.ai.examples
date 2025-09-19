@@ -6,3 +6,10 @@ params:
   weight_decay: 0.00001
   checkpoints: null
   use_imgNet_penalty: false
+  loss:
+    st_weight: 1.0
+    ae_weight: 1.0
+    imgnet_penalty_weight: 0.0
+  preprocessing:
+    compute_teacher_stats: true
+    compute_percentile_quantiles: true
