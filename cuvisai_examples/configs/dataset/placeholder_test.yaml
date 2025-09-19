@@ -1,0 +1,4 @@
+type: "DummyDataset"
+params:
+  length: 2
+  shape: [3, 8, 8]

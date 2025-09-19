@@ -1,0 +1,10 @@
+train:
+  type: "DummyDataset"
+  params:
+    length: 4
+    shape: [3, 8, 8]
+val:
+  type: "DummyDataset"
+  params:
+    length: 2
+    shape: [3, 8, 8]
