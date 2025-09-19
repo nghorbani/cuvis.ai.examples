@@ -9,6 +9,7 @@ class IdentityModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.net = nn.Identity()
+        self._dummy = nn.Parameter(torch.zeros((), device=self.device if hasattr(self, "device") else None))
 
     def forward(self, x):
         return self.net(x)
@@ -16,7 +17,8 @@ class IdentityModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x = batch["image"].float()
         _ = self(x)
-        return torch.tensor(0.0, device=self.device, requires_grad=True)
+        loss = self._dummy * 0.0
+        return loss
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
