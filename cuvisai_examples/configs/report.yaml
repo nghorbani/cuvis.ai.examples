@@ -1,6 +1,7 @@
 defaults:
-  - eval: default
-  - reporter: default
+  - _self_
+  - eval: efficientad
+  - reporting: efficientad
 
 inputs:
   preds_dir: ./work_dirs/exp/preds
