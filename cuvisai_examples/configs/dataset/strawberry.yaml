@@ -1,0 +1,13 @@
+type: StrawberryDataset
+params:
+  root_dir: data/strawberry
+  mean: null
+  std: null
+  normalize: false
+  white_path: null
+  dark_path: null
+  cube_size: [200, 200]
+  cube_rgb_channels: [4, 12, 25]
+  strawberry_range: [0, 220]
+  sides_to_exclude: []
+  days_to_exclude: [28]
