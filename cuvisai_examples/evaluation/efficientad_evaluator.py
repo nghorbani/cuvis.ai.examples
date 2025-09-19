@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 import numpy as np
 from sklearn.metrics import roc_curve, auc
 from cuvisai_examples.registry import EVALUATORS
@@ -8,7 +8,7 @@ class EfficientADEvaluator:
     def __init__(self, normalize: bool = True):
         self.normalize = normalize
 
-    def _flatten_binary(self, score_maps: List[np.ndarray], gt_masks: List[np.ndarray]) -> (np.ndarray, np.ndarray):
+    def _flatten_binary(self, score_maps: List[np.ndarray], gt_masks: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
         ys, yt = [], []
         for s, g in zip(score_maps, gt_masks):
             if self.normalize:
