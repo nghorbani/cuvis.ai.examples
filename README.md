@@ -34,3 +34,22 @@ Notes
 ## Deprecated
 - EfficientAD/train_cuvis.py, PerPixelAE/train_cuvis.py, StrawberryClassification/train.py are deprecated. Use the CLIs above.
 
+## Sample data (Hugging Face)
+- Install and download:
+  - python -m pip install --upgrade huggingface_hub
+  - python tools/download_hf.py
+  - This downloads nghorbani/Hyperspektral-Small into ./data/Hyperspektral-Small
+
+## Real-data smoke runs (CPU)
+- EfficientAD
+  - cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cpu dataloader.batch_size=1 dataset.train.params.path=./data/Hyperspektral-Small dataset.val.params.path=./data/Hyperspektral-Small
+- PerPixelAE
+  - cuvisai-train model=perpixel_ae dataset=perpixel_ae_train_val trainer.max_epochs=1 trainer.accelerator=cpu dataloader.batch_size=1 dataset.train.params.path=./data/Hyperspektral-Small dataset.val.params.path=./data/Hyperspektral-Small
+- Strawberry
+  - cuvisai-train model=strawberry dataset=strawberry_train_val trainer.max_epochs=1 trainer.accelerator=cpu dataloader.batch_size=1 dataset.train.params.root_dir=./data/Hyperspektral-Small dataset.val.params.root_dir=./data/Hyperspektral-Small
+
+## Reports
+- EfficientAD: cuvisai-report reporting=efficientad eval=efficientad work_dir=./work_dirs/effad_report_smoke
+- PerPixelAE: cuvisai-report reporting=perpixel_ae eval=perpixel_ae work_dir=./work_dirs/ppae_report_smoke
+- Strawberry: cuvisai-report reporting=strawberry eval=strawberry work_dir=./work_dirs/strawberry_report_smoke
+
