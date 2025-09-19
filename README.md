@@ -65,3 +65,17 @@ Notes
 - PerPixelAE: cuvisai-report reporting=perpixel_ae eval=perpixel_ae work_dir=./work_dirs/ppae_report_smoke
 - Strawberry: cuvisai-report reporting=strawberry eval=strawberry work_dir=./work_dirs/strawberry_report_smoke
 
+## EfficientAD setup
+- cuvis Python SDK must be installed to read .cu3s session files.
+- Configure data locations via .env:
+  - DATA_CUBES_DIR=path/to/cubes
+  - IMAGENET_DIR=path/to/ImageNet_6_channel
+- Or override via CLI:
+  - uv run cuvisai-train dataset.train.params.path=/abs/cubes dataset.train.params.imageNet_path=/abs/ImageNet_6_channel ...
+
+### Troubleshooting: No training batches
+- If you see "Total length of DataLoader is zero" or "Trainer.fit stopped: No training batches":
+  - Verify DATA_CUBES_DIR points to a directory containing .cu3s files
+  - Verify cuvis is installed and importable in the environment
+  - Ensure dataset mode and filters match your data layout
+
