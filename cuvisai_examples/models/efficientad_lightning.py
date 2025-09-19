@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from torchmetrics.classification import AUROC, ROC, PrecisionRecallCurve, AveragePrecision, Accuracy
 from torchmetrics.segmentation import DiceScore, MeanIoU
+import torch.nn.functional as F
 from cuvisai_examples.registry import MODELS
 
 
@@ -85,7 +86,9 @@ class EfficientADLightning(pl.LightningModule):
         map_st = dist_st.mean(dim=1, keepdim=True)
 
         recon = self.ae(x, (img_h, img_w))
-        dist_ae = (x - recon).pow(2).mean(dim=1, keepdim=True)
+        rh, rw = recon.shape[-2], recon.shape[-1]
+        x_small = F.interpolate(x, size=(rh, rw), mode="bilinear", align_corners=False)
+        dist_ae = (x_small - recon).pow(2).mean(dim=1, keepdim=True)
         norm_st = map_st / (self.qb_st + 1e-6)
         norm_ae = map_ae = dist_ae / (self.qb_ae + 1e-6)
         anomaly_map = 0.5 * (norm_st + norm_ae)
@@ -100,7 +103,9 @@ class EfficientADLightning(pl.LightningModule):
         loss_st = maps["map_st"].mean()
         img_h, img_w = x.shape[-2:]
         recon = self.ae(x, (img_h, img_w))
-        loss_ae = (x - recon).pow(2).mean()
+        rh, rw = recon.shape[-2], recon.shape[-1]
+        x_small = F.interpolate(x, size=(rh, rw), mode="bilinear", align_corners=False)
+        loss_ae = (x_small - recon).pow(2).mean()
 
         loss = self.st_weight * loss_st + self.ae_weight * loss_ae
 
