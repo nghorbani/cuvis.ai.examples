@@ -1,0 +1,6 @@
+type: strawberry.LightningStub
+params:
+  in_channels: 10
+  num_classes: 4
+  lr: 0.001
+  weight_decay: 0.0
