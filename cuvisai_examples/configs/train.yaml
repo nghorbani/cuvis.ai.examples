@@ -1,6 +1,6 @@
 defaults:
-  - model: placeholder
-  - dataset: placeholder_train_val
+  - model: efficientad/medium
+  - dataset: efficientad
   - runner: lightning
   - eval: default
   - logging: tensorboard
@@ -13,8 +13,8 @@ trainer:
   accelerator: cpu
 
 dataloader:
-  batch_size: 2
-  num_workers: 0
+  batch_size: 1
+  num_workers: 2
 
 datasets:
   train: ${dataset.train}
