@@ -10,11 +10,12 @@ def main(cfg: DictConfig):
     train_ds = build_from_cfg(cfg.datasets.train, DATASETS)
     val_ds = build_from_cfg(cfg.datasets.val, DATASETS) if "val" in cfg.datasets else None
 
+    shuffle = len(train_ds) > 0
     train_loader = DataLoader(
         train_ds,
         batch_size=cfg.dataloader.batch_size,
         num_workers=cfg.dataloader.num_workers,
-        shuffle=True,
+        shuffle=shuffle,
     )
     val_loader = None
     if val_ds is not None:
