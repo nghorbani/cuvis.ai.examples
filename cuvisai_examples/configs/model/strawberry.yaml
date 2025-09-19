@@ -1,6 +1,8 @@
-type: strawberry.LightningStub
+type: strawberry.Lightning
 params:
-  in_channels: 10
+  pca_channels: 8
+  cube_channels: 224
   num_classes: 4
-  lr: 0.001
+  learning_rate: 0.001
   weight_decay: 0.0
+  image_size: [200, 200]
