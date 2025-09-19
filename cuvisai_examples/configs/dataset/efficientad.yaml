@@ -1,8 +1,8 @@
 type: EfficientADCuvisDataSet
 params:
-  path: data/cubes
+  path: data/bedding_dataset
   mode: train
-  imageNet_path: null
+  imageNet_path: data/ImageNet
   imageNet_file_ending: .npy
   in_channels: 6
   mean: null
