@@ -1,0 +1,21 @@
+defaults:
+  - model: placeholder
+  - dataset: placeholder_train_val
+  - runner: lightning
+  - eval: default
+  - logging: tensorboard
+
+work_dir: ${oc.env:WORK_DIR, ./work_dirs/exp}
+seed: 42
+
+trainer:
+  max_epochs: 1
+  accelerator: cpu
+
+dataloader:
+  batch_size: 2
+  num_workers: 0
+
+datasets:
+  train: ${dataset.train}
+  val: ${dataset.val}
