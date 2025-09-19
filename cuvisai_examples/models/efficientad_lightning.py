@@ -87,8 +87,9 @@ class EfficientADLightning(pl.LightningModule):
 
         recon = self.ae(x, (img_h, img_w))
         rh, rw = recon.shape[-2], recon.shape[-1]
-        x_small = F.interpolate(x, size=(rh, rw), mode="bilinear", align_corners=False)
-        dist_ae = (x_small - recon).pow(2).mean(dim=1, keepdim=True)
+        if (t.shape[-2], t.shape[-1]) != (rh, rw):
+            t = F.interpolate(t, size=(rh, rw), mode="bilinear", align_corners=False)
+        dist_ae = (t - recon).pow(2).mean(dim=1, keepdim=True)
         norm_st = map_st / (self.qb_st + 1e-6)
         norm_ae = map_ae = dist_ae / (self.qb_ae + 1e-6)
         anomaly_map = 0.5 * (norm_st + norm_ae)
@@ -101,11 +102,7 @@ class EfficientADLightning(pl.LightningModule):
         x = batch["image"]
         maps = self._maps(x)
         loss_st = maps["map_st"].mean()
-        img_h, img_w = x.shape[-2:]
-        recon = self.ae(x, (img_h, img_w))
-        rh, rw = recon.shape[-2], recon.shape[-1]
-        x_small = F.interpolate(x, size=(rh, rw), mode="bilinear", align_corners=False)
-        loss_ae = (x_small - recon).pow(2).mean()
+        loss_ae = maps["map_ae"].mean()
 
         loss = self.st_weight * loss_st + self.ae_weight * loss_ae
 
