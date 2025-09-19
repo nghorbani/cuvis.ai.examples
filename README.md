@@ -37,9 +37,9 @@ Notes
 ## Sample data (Hugging Face)
 - Install and download:
   - python -m pip install --upgrade huggingface_hub
+  - Ensure you have a Hugging Face token (read access) in HF_TOKEN env var
   - python tools/download_hf.py
   - This downloads nghorbani/Hyperspektral-Small into ./data/Hyperspektral-Small
-
 ## Real-data smoke runs (CPU)
 - EfficientAD
   - cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cpu dataloader.batch_size=1 dataset.train.params.path=./data/Hyperspektral-Small dataset.val.params.path=./data/Hyperspektral-Small
