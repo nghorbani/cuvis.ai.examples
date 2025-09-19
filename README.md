@@ -14,11 +14,8 @@ Train a spatial and spectral aware anomaly detection algorithm and infer measure
 ### Strawberry classification
 Train a UNet to classify strawberries and find bruises on them.
 
-## Install
-- With uv:
-  - uv sync
-- With pip:
-  - pip install -e .
+## Install (uv)
+- uv sync
 
 ## CLIs
 - Train
@@ -28,6 +25,16 @@ Train a UNet to classify strawberries and find bruises on them.
 - Infer
   - uv run cuvisai-infer model=efficientad/medium dataset=efficientad
 - Report
+## Environment variables
+- Copy .env.example to .env and edit values as needed:
+  - cp .env.example .env
+- We load .env automatically in all CLIs and tools (dotenv override=True).
+- Important vars:
+  - HF_TOKEN: Hugging Face read token for private datasets
+  - HF_REPO_ID: Dataset repo id (default: nghorbani/Hyperspektral-Small)
+  - HF_LOCAL_DIR: Local download directory (default: data/Hyperspektral-Small)
+  - WORK_DIR: Default work dir for outputs (default: ./work_dirs/exp)
+
   - uv run cuvisai-report eval=efficientad reporting=efficientad
 
 Notes
@@ -38,11 +45,12 @@ Notes
 - EfficientAD/train_cuvis.py, PerPixelAE/train_cuvis.py, StrawberryClassification/train.py are deprecated. Use the CLIs above.
 
 ## Sample data (Hugging Face)
-- Install and download:
-  - python -m pip install --upgrade huggingface_hub
-  - Ensure you have a Hugging Face token (read access) in HF_TOKEN env var
-  - python tools/download_hf.py
-  - This downloads nghorbani/Hyperspektral-Small into ./data/Hyperspektral-Small
+- Prepare:
+  - cp .env.example .env && edit HF_TOKEN
+  - uv sync
+- Download:
+  - uv run python tools/download_hf.py
+  - Uses HF_TOKEN, HF_REPO_ID, HF_LOCAL_DIR from .env
 ## Real-data smoke runs (CPU)
 - EfficientAD
   - cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cpu dataloader.batch_size=1 dataset.train.params.path=./data/Hyperspektral-Small dataset.val.params.path=./data/Hyperspektral-Small
