@@ -48,17 +48,29 @@ class EfficientADCuvisDataSet(Dataset):
         self.white_percentage = white_percentage
         self.channels = channels
 
-        self.file_paths = [
+        self.npz_paths = [
             os.path.join(root, f)
             for root, _, files in os.walk(self.path)
             for f in files
-            if f.lower().endswith(".cu3s")
+            if f.lower().endswith(".npz")
         ]
-        self.images = [
-            [file_path, index]
-            for file_path in self.file_paths
-            for index in range(len(cuvis.SessionFile(file_path)))  # type: ignore[attr-defined]
-        ] if cuvis is not None else []
+        self.uses_npz = len(self.npz_paths) > 0
+
+        if not self.uses_npz and cuvis is not None:
+            self.file_paths = [
+                os.path.join(root, f)
+                for root, _, files in os.walk(self.path)
+                for f in files
+                if f.lower().endswith(".cu3s")
+            ]
+            self.images = [
+                [file_path, index]
+                for file_path in self.file_paths
+                for index in range(len(cuvis.SessionFile(file_path)))  # type: ignore[attr-defined]
+            ]
+        else:
+            self.file_paths = []
+            self.images = list(range(len(self.npz_paths)))
 
         if imageNet_path is not None:
             self.imgNet_files = [
@@ -72,16 +84,39 @@ class EfficientADCuvisDataSet(Dataset):
 
         if mode == "test":
             self.gt = {}
-            for file_path in self.file_paths:
-                if "_ok_ok_" not in file_path:
-                    self.gt[file_path] = file_path.replace(".cu3s", "_0_RGB_mask.png")
+            if self.uses_npz:
+                for file_path in self.npz_paths:
+                    if "_ok_ok_" not in file_path:
+                        self.gt[file_path] = file_path.replace(".npz", "_0_RGB_mask.png")
+            else:
+                for file_path in self.file_paths:
+                    if "_ok_ok_" not in file_path:
+                        self.gt[file_path] = file_path.replace(".cu3s", "_0_RGB_mask.png")
 
         self.transform = lambda x: x
-
         self.proc = None
 
     def __len__(self):
         return len(self.images)
+
+    def _load_cube_from_npz(self, npz_path: str) -> torch.Tensor:
+        with np.load(npz_path, allow_pickle=False) as npz:
+            cube = npz["arr_0"]
+        cube = cube[300:-300, 300:-300, :]
+        cube = np.transpose(cube, (2, 0, 1))
+        cube = torch.from_numpy(cube).to(torch.float32)
+        if self.white_percentage != 1:
+            cube.mul_(self.white_percentage)
+        cube.div_(10000.0)
+        if self.normalize and self.mean is not None and self.std is not None:
+            cube = torchvision.transforms.Normalize(mean=self.mean, std=self.std)(cube)
+        if cube.shape[1] > self.max_img_shape or cube.shape[2] > self.max_img_shape:
+            cube = torchvision.transforms.Resize(size=self.max_img_shape - 1, max_size=self.max_img_shape)(cube)
+        if self.channels == "RGB":
+            cube = cube[:3, :, :]
+        elif self.channels == "SWIR":
+            cube = cube[3:, :, :]
+        return cube
 
     def _load_cube(self, file_path: str, index: int) -> torch.Tensor:
         sess = cuvis.SessionFile(file_path)  # type: ignore[operator]
@@ -121,20 +156,39 @@ class EfficientADCuvisDataSet(Dataset):
         return imgNet_img
 
     def __getitem__(self, idx: int):
-        file_path, index = self.images[idx]
-        cube = self._load_cube(file_path, index)
-        if self.mode == "train":
-            imgNet_img = self._load_imagenet() if self.imgNet_files else torch.zeros_like(cube[:3])
-            return self.transform({"image": cube, "imgNet_img": imgNet_img})
-        else:
-            if "_ok_ok_" in file_path:
-                return {"image": cube, "label": torch.tensor(0, dtype=torch.long), "mask": torch.zeros(cube.shape[-2:]), "defect": "good"}
+        if self.uses_npz:
+            npz_path = self.npz_paths[idx]
+            cube = self._load_cube_from_npz(npz_path)
+            if self.mode == "train":
+                imgNet_img = self._load_imagenet() if self.imgNet_files else torch.zeros((3, cube.shape[-2], cube.shape[-1]), dtype=cube.dtype)
+                return self.transform({"image": cube, "imgNet_img": imgNet_img})
             else:
-                defect = Path(file_path).parent.name
-                if hasattr(self, "gt") and file_path in self.gt and os.path.exists(self.gt[file_path]):
-                    mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[300:-300, 300:-300]
-                    mask = torch.from_numpy(mask).unsqueeze(0)
-                    mask_out = torchvision.transforms.Resize(size=cube.shape[1:], interpolation=torchvision.transforms.InterpolationMode.NEAREST)(mask).squeeze(0)
+                if "_ok_ok_" in npz_path:
+                    return {"image": cube, "label": torch.tensor(0, dtype=torch.long), "mask": torch.zeros(cube.shape[-2:]), "defect": "good"}
                 else:
-                    mask_out = torch.zeros(cube.shape[-2:])
-                return {"image": cube, "label": torch.tensor(1, dtype=torch.long), "mask": mask_out, "defect": defect}
+                    defect = Path(npz_path).parent.name
+                    if hasattr(self, "gt") and npz_path in self.gt and os.path.exists(self.gt[npz_path]):
+                        mask = cv.imread(self.gt[npz_path], cv.IMREAD_GRAYSCALE)[300:-300, 300:-300]
+                        mask = torch.from_numpy(mask).unsqueeze(0)
+                        mask_out = torchvision.transforms.Resize(size=cube.shape[1:], interpolation=torchvision.transforms.InterpolationMode.NEAREST)(mask).squeeze(0)
+                    else:
+                        mask_out = torch.zeros(cube.shape[-2:])
+                    return {"image": cube, "label": torch.tensor(1, dtype=torch.long), "mask": mask_out, "defect": defect}
+        else:
+            file_path, index = self.images[idx]
+            cube = self._load_cube(file_path, index)
+            if self.mode == "train":
+                imgNet_img = self._load_imagenet() if self.imgNet_files else torch.zeros_like(cube[:3])
+                return self.transform({"image": cube, "imgNet_img": imgNet_img})
+            else:
+                if "_ok_ok_" in file_path:
+                    return {"image": cube, "label": torch.tensor(0, dtype=torch.long), "mask": torch.zeros(cube.shape[-2:]), "defect": "good"}
+                else:
+                    defect = Path(file_path).parent.name
+                    if hasattr(self, "gt") and file_path in self.gt and os.path.exists(self.gt[file_path]):
+                        mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[300:-300, 300:-300]
+                        mask = torch.from_numpy(mask).unsqueeze(0)
+                        mask_out = torchvision.transforms.Resize(size=cube.shape[1:], interpolation=torchvision.transforms.InterpolationMode.NEAREST)(mask).squeeze(0)
+                    else:
+                        mask_out = torch.zeros(cube.shape[-2:])
+                    return {"image": cube, "label": torch.tensor(1, dtype=torch.long), "mask": mask_out, "defect": defect}
