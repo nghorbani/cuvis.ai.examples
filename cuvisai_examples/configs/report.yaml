@@ -9,3 +9,5 @@ inputs:
 
 outputs:
   out_dir: ./work_dirs/exp/reports
+
+work_dir: ${oc.env:WORK_DIR, ./work_dirs/exp}
