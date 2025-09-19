@@ -52,13 +52,15 @@ Notes
 - Download:
   - uv run python tools/download_hf.py
   - Uses HF_TOKEN, HF_REPO_ID, HF_LOCAL_DIR from .env
-## Real-data smoke runs (CPU)
-- EfficientAD
-  - cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cpu dataloader.batch_size=1 dataset.train.params.path=./data/Hyperspektral-Small dataset.val.params.path=./data/Hyperspektral-Small
-- PerPixelAE
-  - cuvisai-train model=perpixel_ae dataset=perpixel_ae_train_val trainer.max_epochs=1 trainer.accelerator=cpu dataloader.batch_size=1 dataset.train.params.path=./data/Hyperspektral-Small dataset.val.params.path=./data/Hyperspektral-Small
-- Strawberry
-  - cuvisai-train model=strawberry dataset=strawberry_train_val trainer.max_epochs=1 trainer.accelerator=cpu dataloader.batch_size=1 dataset.train.params.root_dir=./data/Hyperspektral-Small dataset.val.params.root_dir=./data/Hyperspektral-Small
+
+## Using the provided Dropbox sample
+- Download and extract to ./data:
+  - curl -L "https://www.dropbox.com/scl/fi/l1ols1x6zoqq1yc5ehcrj/data.zip?rlkey=v2wi5cbxg2xue9tav4ebk3bil&amp;dl=1" -o data.zip
+  - unzip -q data.zip -d ./data
+- Note: EfficientAD now supports NPZ-backed loading. The sample extracts under:
+  - ./data/Hyperspektral-Small/bedding_dataset/{train,val} with .npz files (no cuvis required)
+- Run EfficientAD for 10 epochs on CPU:
+  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=10 trainer.accelerator=cpu dataloader.batch_size=1 DATA_CUBES_DIR=./data/Hyperspektral-Small/bedding_dataset IMAGENET_DIR=./data/ImageNet_6_channel
 
 ## Reports
 - EfficientAD: cuvisai-report reporting=efficientad eval=efficientad work_dir=./work_dirs/effad_report_smoke
@@ -71,7 +73,7 @@ Notes
   - DATA_CUBES_DIR=path/to/cubes
   - IMAGENET_DIR=path/to/ImageNet_6_channel
 - Or override via CLI:
-  - uv run cuvisai-train dataset.train.params.path=/abs/cubes dataset.train.params.imageNet_path=/abs/ImageNet_6_channel ...
+  - uv run cuvisai-train DATA_CUBES_DIR=/abs/cubes IMAGENET_DIR=/abs/ImageNet_6_channel ...
 
 ### Troubleshooting: No training batches
 - If you see "Total length of DataLoader is zero" or "Trainer.fit stopped: No training batches":
