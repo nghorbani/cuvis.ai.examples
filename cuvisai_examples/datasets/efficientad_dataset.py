@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import Dataset
 import torchvision
+from torchvision import transforms
 import numpy as np
 import cv2 as cv
 import random
@@ -75,20 +76,7 @@ class EfficientADCuvisDataSet(Dataset):
                 if "_ok_ok_" not in file_path:
                     self.gt[file_path] = file_path.replace(".cu3s", "_0_RGB_mask.png")
 
-        self.transform = torchvision.transforms.v2.Compose(
-            [
-                torchvision.transforms.v2.Lambda(torch.as_tensor),
-                torchvision.transforms.v2.ToDtype(torch.float32, scale=False),
-                torchvision.transforms.v2.RandomHorizontalFlip(p=0.5),
-                torchvision.transforms.v2.RandomVerticalFlip(p=0.5),
-                torchvision.transforms.v2.RandomChoice(
-                    [
-                        torchvision.transforms.v2.Lambda(partial(torch.rot90, k=0, dims=(-2, -1))),
-                        torchvision.transforms.v2.Lambda(partial(torch.rot90, k=1, dims=(-2, -1))),
-                    ]
-                ),
-            ]
-        )
+        self.transform = lambda x: x
 
         self.proc = None
 
