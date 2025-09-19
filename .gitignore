@@ -1,0 +1,13 @@
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# local data and outputs
+data/
+work_dirs/
+outputs/
+runs/
+logs/
