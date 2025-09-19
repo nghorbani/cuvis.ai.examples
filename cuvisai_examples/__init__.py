@@ -16,3 +16,4 @@ from .runners import lightning_runner  # noqa: F401
 from .evaluation import evaluator  # noqa: F401
 from .reporting import default_reporter  # noqa: F401
 from .datasets import efficientad_dataset  # noqa: F401
+from .datasets import perpixel_ae_dataset  # noqa: F401
