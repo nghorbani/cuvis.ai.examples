@@ -25,6 +25,8 @@ Train a UNet to classify strawberries and find bruises on them.
 - Infer
   - uv run cuvisai-infer model=efficientad/medium dataset=efficientad
 - Report
+  - uv run cuvisai-report eval=efficientad reporting=efficientad
+
 ## Environment variables
 - Copy .env.example to .env and edit values as needed:
   - cp .env.example .env
@@ -35,7 +37,6 @@ Train a UNet to classify strawberries and find bruises on them.
   - HF_LOCAL_DIR: Local download directory (default: data/Hyperspektral-Small)
   - WORK_DIR: Default work dir for outputs (default: ./work_dirs/exp)
 
-  - uv run cuvisai-report eval=efficientad reporting=efficientad
 
 Notes
 - Hydra/OmegaConf configs live under cuvisai_examples/configs. Override any key via CLI.
