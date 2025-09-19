@@ -18,10 +18,13 @@ def _reduce_tensor_elems(tensor: torch.Tensor, m: int = 2 ** 24) -> torch.Tensor
 
 @MODELS.register("efficientad.MediumLightning")
 class EfficientADLightning(pl.LightningModule):
-    def __init__(self, backbones_type: str = "efficientad.MediumBackbones", in_channels: int = 6, learning_rate: float = 1e-4, weight_decay: float = 1e-5, checkpoints: str | None = None, use_imgNet_penalty: bool = False, loss: dict | None = None, preprocessing: dict | None = None):
+    def __init__(self, backbones_type: str = "efficientad.MediumBackbones", in_channels: int = 6, learning_rate: float = 1e-4, weight_decay: float = 1e-5, checkpoints: str | None = None, use_imgNet_penalty: bool = False, loss: dict | None = None, preprocessing: dict | None = None, backbones_params: dict | None = None):
         super().__init__()
         backbones_cls = MODELS.get(backbones_type)
-        self.backbones = backbones_cls(in_channels=in_channels)
+        bp = {"in_channels": in_channels, "padding": True}
+        if backbones_params:
+            bp.update(backbones_params)
+        self.backbones = backbones_cls(**bp)
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.use_imgNet_penalty = use_imgNet_penalty
