@@ -1,0 +1,10 @@
+defaults:
+  - model: placeholder
+  - dataset: placeholder_test
+  - runner: lightning
+
+checkpoint: null
+
+dataloader:
+  batch_size: 2
+  num_workers: 0
