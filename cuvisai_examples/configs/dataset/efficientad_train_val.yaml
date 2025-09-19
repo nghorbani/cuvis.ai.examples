@@ -1,0 +1,28 @@
+train:
+  type: EfficientADCuvisDataSet
+  params:
+    path: data/cubes
+    mode: train
+    imageNet_path: null
+    imageNet_file_ending: .npy
+    in_channels: 6
+    mean: null
+    std: null
+    normalize: true
+    max_img_shape: 1500
+    white_percentage: 0.55
+    channels: ALL
+val:
+  type: EfficientADCuvisDataSet
+  params:
+    path: data/cubes
+    mode: test
+    imageNet_path: null
+    imageNet_file_ending: .npy
+    in_channels: 6
+    mean: null
+    std: null
+    normalize: true
+    max_img_shape: 1500
+    white_percentage: 0.55
+    channels: ALL
