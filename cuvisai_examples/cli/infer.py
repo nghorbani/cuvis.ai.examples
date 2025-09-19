@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
 import hydra
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
