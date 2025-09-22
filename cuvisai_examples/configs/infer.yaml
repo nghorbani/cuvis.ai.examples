@@ -1,6 +1,6 @@
 defaults:
   - model: placeholder
-  - dataset: placeholder_test
+  - dataset: efficientad
   - runner: lightning
 
 checkpoint: null
@@ -8,3 +8,5 @@ checkpoint: null
 dataloader:
   batch_size: 2
   num_workers: 0
+
+dataset: ${dataset.test}
