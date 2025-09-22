@@ -1,3 +1,4 @@
+
 train:
   type: PerPixelAECuvisDataSet
   params:
@@ -9,6 +10,10 @@ train:
     normalize: true
     mean: null
     std: null
+    obtain:
+      hf:
+        repo_id: nghorbani/Hyperspektral-Small
+        local_dir: data/Hyperspektral-Small
 
 val:
   type: PerPixelAECuvisDataSet
@@ -21,6 +26,10 @@ val:
     normalize: true
     mean: null
     std: null
+    obtain:
+      hf:
+        repo_id: nghorbani/Hyperspektral-Small
+        local_dir: data/Hyperspektral-Small
 
 test:
   type: PerPixelAECuvisDataSet
@@ -33,3 +42,7 @@ test:
     normalize: true
     mean: null
     std: null
+    obtain:
+      hf:
+        repo_id: nghorbani/Hyperspektral-Small
+        local_dir: data/Hyperspektral-Small

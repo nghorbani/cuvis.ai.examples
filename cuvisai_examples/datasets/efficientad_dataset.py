@@ -35,6 +35,7 @@ class EfficientADCuvisDataSet(Dataset):
         max_img_shape: int = 1500,
         white_percentage: float = 0.55,
         channels: str = "ALL",
+        obtain: Optional[dict] = None,
     ):
         self.dataset_dir = dataset_dir
         self.mode = mode
@@ -47,6 +48,24 @@ class EfficientADCuvisDataSet(Dataset):
         self.normalize = normalize
         self.white_percentage = white_percentage
         self.channels = channels
+        if not os.path.isdir(self.dataset_dir):
+            if obtain and isinstance(obtain, dict) and "hf" in obtain:
+                hf = obtain.get("hf") or {}
+                repo_id = hf.get("repo_id")
+                local_dir = hf.get("local_dir", self.dataset_dir)
+                token = os.environ.get("HF_TOKEN")
+                if repo_id and token:
+                    try:
+                        from huggingface_hub import snapshot_download
+                        logging.getLogger(__name__).info(f"Dataset dir missing; downloading from HF: repo_id={repo_id} to {local_dir}")
+                        snapshot_download(repo_id=repo_id, repo_type="dataset", local_dir=str(local_dir), local_dir_use_symlinks=False, token=token)
+                    except Exception as e:
+                        logging.getLogger(__name__).warning(f"HF download failed: {e}")
+                else:
+                    logging.getLogger(__name__).warning("Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download.")
+            else:
+                logging.getLogger(__name__).warning(f"Dataset dir not found: {self.dataset_dir}")
+
 
         self.npz_paths = [
             os.path.join(root, f)

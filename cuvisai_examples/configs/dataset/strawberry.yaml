@@ -1,3 +1,5 @@
+# strawberry dataset unified config with HF obtain section
+
 train:
   type: StrawberryDataset
   params:
@@ -12,6 +14,10 @@ train:
     std: null
     white_path: null
     dark_path: null
+    obtain:
+      hf:
+        repo_id: nghorbani/Hyperspektral-Small
+        local_dir: data/Hyperspektral-Small
 
 val:
   type: StrawberryDataset
@@ -27,6 +33,10 @@ val:
     std: null
     white_path: null
     dark_path: null
+    obtain:
+      hf:
+        repo_id: nghorbani/Hyperspektral-Small
+        local_dir: data/Hyperspektral-Small
 
 test:
   type: StrawberryDataset
@@ -42,3 +52,7 @@ test:
     std: null
     white_path: null
     dark_path: null
+    obtain:
+      hf:
+        repo_id: nghorbani/Hyperspektral-Small
+        local_dir: data/Hyperspektral-Small
