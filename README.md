@@ -33,6 +33,19 @@ Train a UNet to classify strawberries and find bruises on them.
   - Example: uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cuda
 - Force CPU: trainer.accelerator=cpu
 
+### Verbose logging and sanity checks
+- Logs are printed to console and saved to ${work_dir}/train.log.
+- Control verbosity via:
+  - log_level=INFO|DEBUG
+  - or logging.verbose=true (sets DEBUG)
+- Example:
+  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cpu logging.verbose=true
+- You will see:
+  - Dataset init summary: counts, NPZ/cu3s selection, ImageNet availability, normalization settings
+  - Training start: computing teacher mean/std start/end
+  - Validation start: percentile quantiles start/end with computed qa/qb
+  - Skips are explicit (flags disabled or no val loader)
+
 ### EfficientAD configurable losses and preprocessing
 - Loss weights:
   - model.params.loss.st_weight: student-teacher loss weight (default 1.0)

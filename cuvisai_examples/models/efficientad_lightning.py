@@ -88,6 +88,7 @@ class EfficientADLightning(pl.LightningModule):
         recon = self.ae(x, (img_h, img_w))
         rh, rw = recon.shape[-2], recon.shape[-1]
         if (t.shape[-2], t.shape[-1]) != (rh, rw):
+            logging.getLogger(__name__).debug(f"Interpolating teacher feats from {(t.shape[-2], t.shape[-1])} to AE recon {(rh, rw)}")
             t = F.interpolate(t, size=(rh, rw), mode="bilinear", align_corners=False)
         dist_ae = (t - recon).pow(2).mean(dim=1, keepdim=True)
         norm_st = map_st / (self.qb_st + 1e-6)
@@ -116,11 +117,12 @@ class EfficientADLightning(pl.LightningModule):
         self.log("train/loss", loss, on_epoch=True, prog_bar=True)
         return loss
 
-        logging.getLogger(__name__).info("Starting teacher mean/std computation over train loader")
-
     def on_train_start(self) -> None:
         if self.compute_teacher_stats:
+            logging.getLogger(__name__).info("Starting teacher mean/std computation over train loader")
             self._compute_teacher_mean_std(self.trainer.train_dataloader)
+        else:
+            logging.getLogger(__name__).info("Skipping teacher mean/std computation (flag disabled)")
 
     @torch.no_grad()
     def _compute_teacher_mean_std(self, dl: DataLoader) -> None:
@@ -148,8 +150,14 @@ class EfficientADLightning(pl.LightningModule):
         logging.getLogger(__name__).info("Starting percentile quantile computation over val loader")
 
     def on_validation_start(self) -> None:
-        if self.compute_percentile_quantiles and self.trainer.val_dataloaders is not None:
-            self._compute_quantiles(self.trainer.val_dataloaders)
+        if not self.compute_percentile_quantiles:
+            logging.getLogger(__name__).info("Skipping percentile quantile computation (flag disabled)")
+            return
+        if self.trainer.val_dataloaders is None:
+            logging.getLogger(__name__).info("Skipping percentile quantile computation (no val dataloader)")
+            return
+        logging.getLogger(__name__).info("Starting percentile quantile computation over val loader")
+        self._compute_quantiles(self.trainer.val_dataloaders)
 
     @torch.no_grad()
     def _compute_quantiles(self, dl: DataLoader) -> None:
