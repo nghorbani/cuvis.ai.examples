@@ -2,7 +2,7 @@
 train:
   type: PerPixelAECuvisDataSet
   params:
-    dataset_dir: data/cubes
+    dataset_dir: data/Hyperspektral-Small
     mode: train
     max_img_shape: 1500
     channels: ALL
@@ -12,13 +12,13 @@ train:
     std: null
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
         local_dir: data/Hyperspektral-Small
 
 val:
   type: PerPixelAECuvisDataSet
   params:
-    dataset_dir: data/cubes
+    dataset_dir: data/Hyperspektral-Small
     mode: test
     max_img_shape: 1500
     channels: ALL
@@ -28,13 +28,13 @@ val:
     std: null
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
         local_dir: data/Hyperspektral-Small
 
 test:
   type: PerPixelAECuvisDataSet
   params:
-    dataset_dir: data/cubes
+    dataset_dir: data/Hyperspektral-Small
     mode: test
     max_img_shape: 1500
     channels: ALL
@@ -44,5 +44,5 @@ test:
     std: null
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
         local_dir: data/Hyperspektral-Small

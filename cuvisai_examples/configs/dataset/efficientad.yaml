@@ -14,7 +14,7 @@ train:
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
         local_dir: data/Hyperspektral-Small
 
 val:
@@ -33,7 +33,7 @@ val:
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
         local_dir: data/Hyperspektral-Small
 
 test:
@@ -52,5 +52,5 @@ test:
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
         local_dir: data/Hyperspektral-Small
