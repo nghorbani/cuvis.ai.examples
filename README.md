@@ -19,9 +19,9 @@ Train a UNet to classify strawberries and find bruises on them.
 
 ## CLIs
 - Train
-  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1
-  - uv run cuvisai-train model=perpixel_ae dataset=perpixel_ae_train_val trainer.max_epochs=1
-  - uv run cuvisai-train model=strawberry dataset=strawberry_train_val trainer.max_epochs=1
+  - uv run cuvisai-train model=efficientad/medium dataset=efficientad trainer.max_epochs=1
+  - uv run cuvisai-train model=perpixel_ae dataset=perpixel_ae trainer.max_epochs=1
+  - uv run cuvisai-train model=strawberry dataset=strawberry trainer.max_epochs=1
 - Infer
   - uv run cuvisai-infer model=efficientad/medium dataset=efficientad
 - Report
@@ -30,7 +30,7 @@ Train a UNet to classify strawberries and find bruises on them.
 ### Accelerator defaults
 - The default trainer accelerator is CUDA (with easy override). CPU training will be very slow.
 - Force GPU: add trainer.accelerator=cuda (and optionally trainer.devices=1)
-  - Example: uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cuda
+  - Example: uv run cuvisai-train model=efficientad/medium dataset=efficientad trainer.max_epochs=1 trainer.accelerator=cuda
 - Force CPU: trainer.accelerator=cpu
 
 ### Verbose logging and sanity checks
@@ -46,7 +46,7 @@ Train a UNet to classify strawberries and find bruises on them.
   - Quantiles (good samples): shows progress while computing percentile thresholds over the val loader
 
 - Example:
-  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cpu logging.verbose=true
+  - uv run cuvisai-train model=efficientad/medium dataset=efficientad trainer.max_epochs=1 trainer.accelerator=cpu logging.verbose=true
 - You will see:
   - Dataset init summary: counts, NPZ/cu3s selection, ImageNet availability, normalization settings
   - Training start: teacher mean/std progress bar and completion
@@ -62,7 +62,7 @@ Train a UNet to classify strawberries and find bruises on them.
   - model.params.preprocessing.compute_teacher_stats: compute teacher feature mean/std on train start (default true)
   - model.params.preprocessing.compute_percentile_quantiles: compute percentile thresholds on val start using good samples (default true)
 - Example:
-  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 model.params.loss.ae_weight=0.5 model.params.preprocessing.compute_percentile_quantiles=false
+  - uv run cuvisai-train model=efficientad/medium dataset=efficientad trainer.max_epochs=1 model.params.loss.ae_weight=0.5 model.params.preprocessing.compute_percentile_quantiles=false
 
 ## Environment variables
 - Copy .env.example to .env and edit values as needed:
@@ -100,7 +100,7 @@ Notes
 - Note: EfficientAD now supports NPZ-backed loading. The sample extracts under:
   - ./data/Hyperspektral-Small/bedding_dataset/{train,val} with .npz files (no cuvis required)
 - Run EfficientAD for 10 epochs (uses config defaults for paths):
-  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=10 trainer.accelerator=cpu dataloader.batch_size=1
+  - uv run cuvisai-train model=efficientad/medium dataset=efficientad trainer.max_epochs=10 trainer.accelerator=cpu dataloader.batch_size=1
   - To override paths via CLI (optional):
     - uv run cuvisai-train dataset.train.params.dataset_dir=./data/Hyperspektral-Small/bedding_dataset dataset.val.params.dataset_dir=./data/Hyperspektral-Small/bedding_dataset
 
