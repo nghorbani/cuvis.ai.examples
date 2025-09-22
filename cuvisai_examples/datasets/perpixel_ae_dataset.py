@@ -20,7 +20,7 @@ except Exception:
 class PerPixelAECuvisDataSet(Dataset):
     def __init__(
         self,
-        path: str = "data/cubes",
+        dataset_dir: str = "data/cubes",
         mode: str = "train",
         max_img_shape: int = 1500,
         channels: str = "ALL",
@@ -28,8 +28,12 @@ class PerPixelAECuvisDataSet(Dataset):
         normalize: bool = True,
         mean: Optional[List[float]] = None,
         std: Optional[List[float]] = None,
+        obtain: Optional[dict] = None,
+        path: Optional[str] = None,
     ):
-        self.path = path
+        if path and not dataset_dir:
+            dataset_dir = path
+        self.path = dataset_dir
         self.mode = mode
         self.max_img_shape = max_img_shape
         self.channels = channels
@@ -37,6 +41,24 @@ class PerPixelAECuvisDataSet(Dataset):
         self.normalize = normalize
         self.mean = mean
         self.std = std
+        if not os.path.isdir(self.path):
+            if obtain and isinstance(obtain, dict) and "hf" in obtain:
+                hf = obtain.get("hf") or {}
+                repo_id = hf.get("repo_id")
+                local_dir = hf.get("local_dir", self.path)
+                token = os.environ.get("HF_TOKEN")
+                if repo_id and token:
+                    try:
+                        from huggingface_hub import snapshot_download
+                        logging.getLogger(__name__).info(f"Dataset dir missing; downloading from HF: repo_id={repo_id} to {local_dir}")
+                        snapshot_download(repo_id=repo_id, repo_type="dataset", local_dir=str(local_dir), local_dir_use_symlinks=False, token=token)
+                    except Exception as e:
+                        logging.getLogger(__name__).warning(f"HF download failed: {e}")
+                else:
+                    logging.getLogger(__name__).warning("Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download.")
+            else:
+                logging.getLogger(__name__).warning(f"Dataset dir not found: {self.path}")
+
 
         self.file_paths = [
             os.path.join(root, f)
