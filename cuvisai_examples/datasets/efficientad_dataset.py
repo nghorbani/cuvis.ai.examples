@@ -158,11 +158,7 @@ class EfficientADCuvisDataSet(Dataset):
 
     def _load_imagenet(self) -> torch.Tensor:
         if self.imageNet_file_ending == ".npy":
-            if self._dbg < 3:
-                logging.getLogger(__name__).debug(f"EfficientAD item {idx}: npz cube shape pre-return={tuple(cube.shape)} channels_sel={self.channels}")
-                self._dbg += 1
-
-            imgNet_img = np.load(random.choice(self.imgNet_files))
+            imgNet_img = np.load(random.choice(self.imgNet_files), allow_pickle=False)
         else:
             imgNet_img = np.array(cv.imread(random.choice(self.imgNet_files)))
         imgNet_img = np.transpose(imgNet_img, (2, 0, 1))
