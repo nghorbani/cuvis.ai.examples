@@ -210,7 +210,7 @@ class EfficientADLightning(pl.LightningModule):
             ap = self.ap(preds, tgts)
             self.log("val/auroc", auroc, prog_bar=True)
             self.log("val/ap", ap, prog_bar=False)
-            logging.getLogger(__name__).info(f"Validation metrics: AUROC={float(auroc):.4f}, AP={float(ap):.4f}")
+            logging.getLogger(__name__).info(f"Validation epoch {self.current_epoch} summary: AUROC={float(auroc):.4f}, AP={float(ap):.4f}")
         except Exception as e:
             logging.getLogger(__name__).warning(f"Validation metrics failed: {e}")
 
