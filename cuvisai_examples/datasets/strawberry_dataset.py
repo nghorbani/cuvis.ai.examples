@@ -30,6 +30,7 @@ class StrawberryDataset(Dataset):
         strawberry_range: Tuple[int, int] = (0, 220),
         sides_to_exclude: Optional[List[int]] = None,
         days_to_exclude: Optional[List[int]] = None,
+        obtain: Optional[dict] = None,
     ):
         if days_to_exclude is None:
             days_to_exclude = [28]
@@ -41,6 +42,25 @@ class StrawberryDataset(Dataset):
             cube_size = [200, 200]
 
         self.root_dir = Path(root_dir)
+
+        if not self.root_dir.exists():
+            if obtain and isinstance(obtain, dict) and "hf" in obtain:
+                hf = obtain.get("hf") or {}
+                repo_id = hf.get("repo_id")
+                local_dir = hf.get("local_dir", str(self.root_dir))
+                token = os.environ.get("HF_TOKEN")
+                if repo_id and token:
+                    try:
+                        from huggingface_hub import snapshot_download
+                        print(f"Dataset dir missing; downloading from HF: repo_id={repo_id} to {local_dir}")
+                        snapshot_download(repo_id=repo_id, repo_type="dataset", local_dir=str(local_dir), local_dir_use_symlinks=False, token=token)
+                    except Exception as e:
+                        print(f"HF download failed: {e}")
+                else:
+                    print("Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download.")
+            else:
+                print(f"Dataset dir not found: {self.root_dir}")
+
         self.file_paths: List[Path] = []
         for path in self.root_dir.glob("*.cu3s"):
             name_splits = path.name.split("_")
