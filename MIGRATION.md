@@ -12,7 +12,7 @@ Install and run
 - uv sync
 - cp .env.example .env
 - Train:
-  uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1
+  uv run cuvisai-train model=efficientad/medium dataset=efficientad trainer.max_epochs=1
 - Infer:
   uv run cuvisai-infer model=efficientad/medium dataset=efficientad
 - Report:
