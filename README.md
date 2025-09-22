@@ -70,6 +70,12 @@ Train a UNet to classify strawberries and find bruises on them.
 - We load .env automatically in all CLIs and tools (dotenv override=True).
 - Important vars:
   - HF_TOKEN: Hugging Face read token for private datasets
+
+### Dataset auto-download (obtain.hf)
+- Each dataset config supports params.obtain.hf with repo_id and local_dir.
+- If the configured dataset_dir/root_dir does not exist, the dataset will try to download from Hugging Face using HF_TOKEN from your .env.
+- Example override:
+  - uv run cuvisai-train dataset.train.params.obtain.hf.repo_id=nghorbani/Hyperspektral-Small dataset.train.params.obtain.hf.local_dir=./data/Hyperspektral-Small
 - Note: Project paths and repo IDs are configured in Hydra configs (not env). Only credentials (HF_TOKEN) should be in env.
 
 
