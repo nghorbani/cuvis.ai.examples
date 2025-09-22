@@ -220,20 +220,33 @@ class EfficientADLightning(pl.LightningModule):
             logging.getLogger(__name__).warning(f"Train epoch summary logging failed: {e}")
     def on_validation_epoch_end(self):
         if len(self._val_preds) == 0:
-            logging.getLogger(__name__).info("Validation: no masks/predictions collected; skipping AUROC.")
+            self.log("val/auroc", torch.tensor(0.0), prog_bar=True)
+            self.log("val/ap", torch.tensor(0.0), prog_bar=False)
+            logging.getLogger(__name__).info(f"Validation epoch {self.current_epoch} summary: AUROC=0.0000, AP=0.0000 (no predictions/masks collected)")
             return
         preds = torch.cat(self._val_preds, dim=0)
         tgts = torch.cat(self._val_tgts, dim=0)
         self._val_preds.clear()
         self._val_tgts.clear()
         try:
-            auroc = self.auroc(preds, tgts)
-            ap = self.ap(preds, tgts)
+            if tgts.numel() == 0:
+                auroc = torch.tensor(0.0)
+                ap = torch.tensor(0.0)
+                reason = "empty targets"
+            else:
+                reason = None
+                auroc = self.auroc(preds, tgts)
+                ap = self.ap(preds, tgts)
             self.log("val/auroc", auroc, prog_bar=True)
             self.log("val/ap", ap, prog_bar=False)
-            logging.getLogger(__name__).info(f"Validation epoch {self.current_epoch} summary: AUROC={float(auroc):.4f}, AP={float(ap):.4f}")
+            if reason:
+                logging.getLogger(__name__).info(f"Validation epoch {self.current_epoch} summary: AUROC={float(auroc):.4f}, AP={float(ap):.4f} ({reason})")
+            else:
+                logging.getLogger(__name__).info(f"Validation epoch {self.current_epoch} summary: AUROC={float(auroc):.4f}, AP={float(ap):.4f}")
         except Exception as e:
-            logging.getLogger(__name__).warning(f"Validation metrics failed: {e}")
+            self.log("val/auroc", torch.tensor(0.0), prog_bar=True)
+            self.log("val/ap", torch.tensor(0.0), prog_bar=False)
+            logging.getLogger(__name__).warning(f"Validation metrics failed: {e}; logged zeros.")
 
     def configure_optimizers(self):
         return torch.optim.Adam(itertools.chain(self.student.parameters(), self.ae.parameters()), lr=self.learning_rate, weight_decay=self.weight_decay)
