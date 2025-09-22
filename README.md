@@ -136,4 +136,5 @@ Notes
 - Metrics appear in the console/progress bar and are written to ${work_dir}/train.log.
 - If no predictions/masks are collected (e.g., bad val dir or no masks), the trainer logs zeros with a reason so AUROC/AP are still visible.
 - Ensure your validation dataset provides pixel masks for defects to enable meaningful metrics.
+Train a spatial and spectral aware anomaly detection algorithm and infer measurements using cuvis.ai.
 
