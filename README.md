@@ -41,13 +41,16 @@ Train a UNet to classify strawberries and find bruises on them.
 - Lightning progress bar remains enabled; after each epoch, one-line summaries are printed and persist:
   - Train: train/loss, train/st, train/ae
   - Val: val/auroc, val/ap
+- Additional tqdm bars:
+  - Teacher stats: shows progress while computing teacher mean/std over the train loader
+  - Quantiles (good samples): shows progress while computing percentile thresholds over the val loader
 
 - Example:
   - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cpu logging.verbose=true
 - You will see:
   - Dataset init summary: counts, NPZ/cu3s selection, ImageNet availability, normalization settings
-  - Training start: computing teacher mean/std start/end
-  - Validation start: percentile quantiles start/end with computed qa/qb
+  - Training start: teacher mean/std progress bar and completion
+  - Validation start: quantile computation progress bar and computed qa/qb
   - Skips are explicit (flags disabled or no val loader)
 
 ### EfficientAD configurable losses and preprocessing
