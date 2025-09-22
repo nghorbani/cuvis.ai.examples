@@ -70,9 +70,7 @@ Train a UNet to classify strawberries and find bruises on them.
 - We load .env automatically in all CLIs and tools (dotenv override=True).
 - Important vars:
   - HF_TOKEN: Hugging Face read token for private datasets
-  - HF_REPO_ID: Dataset repo id (default: nghorbani/Hyperspektral-Small)
-  - HF_LOCAL_DIR: Local download directory (default: data/Hyperspektral-Small)
-  - WORK_DIR: Default work dir for outputs (default: ./work_dirs/exp)
+- Note: Project paths and repo IDs are configured in Hydra configs (not env). Only credentials (HF_TOKEN) should be in env.
 
 
 Notes
@@ -93,7 +91,7 @@ Notes
   - uv sync
 - Download:
   - uv run python tools/download_hf.py
-  - Uses HF_TOKEN, HF_REPO_ID, HF_LOCAL_DIR from .env
+  - Uses HF_TOKEN from env; repo/local_dir from config (hf.repo_id, hf.local_dir)
 
 ## Using the provided Dropbox sample
 - Download and extract to ./data:
@@ -101,8 +99,10 @@ Notes
   - unzip -q data.zip -d ./data
 - Note: EfficientAD now supports NPZ-backed loading. The sample extracts under:
   - ./data/Hyperspektral-Small/bedding_dataset/{train,val} with .npz files (no cuvis required)
-- Run EfficientAD for 10 epochs on CPU:
-  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=10 trainer.accelerator=cpu dataloader.batch_size=1 DATA_CUBES_DIR=./data/Hyperspektral-Small/bedding_dataset IMAGENET_DIR=./data/ImageNet_6_channel
+- Run EfficientAD for 10 epochs (uses config defaults for paths):
+  - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=10 trainer.accelerator=cpu dataloader.batch_size=1
+  - To override paths via CLI (optional):
+    - uv run cuvisai-train dataset.train.params.dataset_dir=./data/Hyperspektral-Small/bedding_dataset dataset.val.params.dataset_dir=./data/Hyperspektral-Small/bedding_dataset
 
 ## Reports
 - EfficientAD: cuvisai-report reporting=efficientad eval=efficientad work_dir=./work_dirs/effad_report_smoke
@@ -124,9 +124,10 @@ Notes
   - Ensure dataset mode and filters match your data layout
 
 ### Validation metrics
-- During validation, EfficientAD logs:
+- During validation, EfficientAD logs every epoch:
   - val/auroc: AUROC computed from the continuous anomaly_map vs. binary masks (mask&gt;0)
   - val/ap: Average Precision on the same predictions/targets
 - Metrics appear in the console/progress bar and are written to ${work_dir}/train.log.
-- Ensure your validation dataset provides pixel masks for defects to enable these metrics.
+- If no predictions/masks are collected (e.g., bad val dir or no masks), the trainer logs zeros with a reason so AUROC/AP are still visible.
+- Ensure your validation dataset provides pixel masks for defects to enable meaningful metrics.
 

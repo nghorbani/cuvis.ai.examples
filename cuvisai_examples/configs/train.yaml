@@ -4,9 +4,10 @@ defaults:
   - runner: lightning
   - eval: default
   - logging: tensorboard
+  - hf
   - _self_
 
-work_dir: ${oc.env:WORK_DIR, ./work_dirs/exp}
+work_dir: ./work_dirs/exp
 seed: 42
 log_level: INFO
 logging:
