@@ -51,8 +51,6 @@ class EfficientADLightning(pl.LightningModule):
         self.register_buffer("qb_ae", torch.tensor(0.0))
 
         self.auroc = AUROC(task='binary')
-        self.roc = ROC(task='binary')
-        self.prc = PrecisionRecallCurve(task='binary')
         self.ap = AveragePrecision(task='binary')
         self.acc1 = Accuracy(task='binary', threshold=0.1)
         self.acc2 = Accuracy(task='binary', threshold=0.2)
@@ -64,13 +62,11 @@ class EfficientADLightning(pl.LightningModule):
         self.dice3 = DiceScore(num_classes=2, include_background=False)
         self.dice4 = DiceScore(num_classes=2, include_background=False)
         self.dice5 = DiceScore(num_classes=2, include_background=False)
-        self.iou1 = MeanIoU(num_classes=2, include_background=False)
-        self.iou2 = MeanIoU(num_classes=2, include_background=False)
-        self.iou3 = MeanIoU(num_classes=2, include_background=False)
-        self.iou4 = MeanIoU(num_classes=2, include_background=False)
-        self.iou5 = MeanIoU(num_classes=2, include_background=False)
         self.dice_bg = DiceScore(num_classes=2, include_background=True)
         self.iou_bg = MeanIoU(num_classes=2, include_background=True)
+
+        self._val_preds = []
+        self._val_tgts = []
 
     def _teacher_feats(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
@@ -177,9 +173,36 @@ class EfficientADLightning(pl.LightningModule):
             self.qa_st = torch.quantile(msf, q=0.9)
             self.qb_st = torch.quantile(msf, q=0.995)
             self.qa_ae = torch.quantile(maf, q=0.9)
-            logging.getLogger(__name__).info(f"Quantiles computed: qa_st={self.qa_st.item():.6f} qb_st={self.qb_st.item():.6f} qa_ae={self.qa_ae.item():.6f} qb_ae={self.qb_ae.item():.6f}")
-
             self.qb_ae = torch.quantile(maf, q=0.995)
+            logging.getLogger(__name__).info(f"Quantiles computed: qa_st={self.qa_st.item():.6f} qb_st={self.qb_st.item():.6f} qa_ae={self.qa_ae.item():.6f} qb_ae={self.qb_ae.item():.6f}")
+        else:
+            logging.getLogger(__name__).warning("No good samples found in val loader; skipping quantiles (qa/qb remain defaults)")
+
+    def validation_step(self, batch, batch_idx):
+        x = batch["image"]
+        maps = self._maps(x)
+        if "mask" in batch:
+            tgt = (batch["mask"] > 0).to(torch.int64)
+            pred = maps["anomaly_map"]
+            self._val_preds.append(pred.detach().flatten().cpu())
+            self._val_tgts.append(tgt.detach().flatten().cpu())
+
+    def on_validation_epoch_end(self):
+        if len(self._val_preds) == 0:
+            logging.getLogger(__name__).info("Validation: no masks/predictions collected; skipping AUROC.")
+            return
+        preds = torch.cat(self._val_preds, dim=0)
+        tgts = torch.cat(self._val_tgts, dim=0)
+        self._val_preds.clear()
+        self._val_tgts.clear()
+        try:
+            auroc = self.auroc(preds, tgts)
+            ap = self.ap(preds, tgts)
+            self.log("val/auroc", auroc, prog_bar=True)
+            self.log("val/ap", ap, prog_bar=False)
+            logging.getLogger(__name__).info(f"Validation metrics: AUROC={float(auroc):.4f}, AP={float(ap):.4f}")
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Validation metrics failed: {e}")
 
     def configure_optimizers(self):
         return torch.optim.Adam(itertools.chain(self.student.parameters(), self.ae.parameters()), lr=self.learning_rate, weight_decay=self.weight_decay)
