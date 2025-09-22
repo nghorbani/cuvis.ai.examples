@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
+import logging
 import hydra
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
@@ -10,6 +11,10 @@ from cuvisai_examples.registry import DATASETS, MODELS, RUNNERS, build_from_cfg
 
 @hydra.main(version_base=None, config_path="../configs", config_name="train")
 def main(cfg: DictConfig):
+    level_name = str(getattr(cfg, "log_level", "INFO"))
+    level = getattr(logging, level_name.upper(), logging.INFO)
+    logging.basicConfig(level=level, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+
     model = build_from_cfg(cfg.model, MODELS)
     train_ds = build_from_cfg(cfg.datasets.train, DATASETS)
     val_ds = build_from_cfg(cfg.datasets.val, DATASETS) if "val" in cfg.datasets else None
