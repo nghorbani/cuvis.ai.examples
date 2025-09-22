@@ -1,13 +1,13 @@
-type: EfficientADCuvisDataSet
+type: "EfficientADCuvisDataSet"
 params:
-  path: ${oc.env:DATA_CUBES_DIR, data/cubes}
-  mode: train
-  imageNet_path: ${oc.env:IMAGENET_DIR, data/ImageNet_6_channel}
-  imageNet_file_ending: .npy
+  dataset_dir: ./data/Hyperspektral-Small/bedding_dataset
+  mode: "test"
+  imagenet_dir: ./data/ImageNet_6_channel
+  imagenet_file_ending: ".npy"
   in_channels: 6
-  mean: [0.31257936, 0.43269954, 0.50889452, 0.64886759, 0.5958548, 0.39783356]
-  std:  [0.13495414, 0.17394394, 0.19844727, 0.21376508, 0.19457226, 0.13772688]
   normalize: true
   max_img_shape: 1500
   white_percentage: 0.55
-  channels: ALL
+  channels: "ALL"
+  mean: [0.0267, 0.0267, 0.0267, 0.0267, 0.0267, 0.0267]
+  std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]

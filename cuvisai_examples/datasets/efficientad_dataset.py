@@ -24,10 +24,10 @@ except Exception:
 class EfficientADCuvisDataSet(Dataset):
     def __init__(
         self,
-        path: str = "data/cubes",
+        dataset_dir: str = "data/cubes",
         mode: str = "train",
-        imageNet_path: Optional[str] = None,
-        imageNet_file_ending: str = ".npy",
+        imagenet_dir: Optional[str] = None,
+        imagenet_file_ending: str = ".npy",
         in_channels: int = 6,
         mean: Optional[List[float]] = None,
         std: Optional[List[float]] = None,
@@ -36,10 +36,10 @@ class EfficientADCuvisDataSet(Dataset):
         white_percentage: float = 0.55,
         channels: str = "ALL",
     ):
-        self.path = path
+        self.dataset_dir = dataset_dir
         self.mode = mode
-        self.imageNet_file_ending = imageNet_file_ending
-        self.imageNet_path = imageNet_path
+        self.imagenet_file_ending = imagenet_file_ending
+        self.imagenet_dir = imagenet_dir
         self.in_channels = in_channels
         self.mean = mean
         self.std = std
@@ -50,7 +50,7 @@ class EfficientADCuvisDataSet(Dataset):
 
         self.npz_paths = [
             os.path.join(root, f)
-            for root, _, files in os.walk(self.path)
+            for root, _, files in os.walk(self.dataset_dir)
             for f in files
             if f.lower().endswith(".npz")
         ]
@@ -59,7 +59,7 @@ class EfficientADCuvisDataSet(Dataset):
         if not self.uses_npz and cuvis is not None:
             self.file_paths = [
                 os.path.join(root, f)
-                for root, _, files in os.walk(self.path)
+                for root, _, files in os.walk(self.dataset_dir)
                 for f in files
                 if f.lower().endswith(".cu3s")
             ]
@@ -72,12 +72,12 @@ class EfficientADCuvisDataSet(Dataset):
             self.file_paths = []
             self.images = list(range(len(self.npz_paths)))
 
-        if imageNet_path is not None:
+        if imagenet_dir is not None:
             self.imgNet_files = [
                 os.path.join(root, f)
-                for root, _, files in os.walk(imageNet_path)
+                for root, _, files in os.walk(imagenet_dir)
                 for f in files
-                if f.lower().endswith(self.imageNet_file_ending) and mode in os.path.join(root, f)
+                if f.lower().endswith(self.imagenet_file_ending) and mode in os.path.join(root, f)
             ]
         else:
             self.imgNet_files = []
@@ -93,11 +93,11 @@ class EfficientADCuvisDataSet(Dataset):
                     if "_ok_ok_" not in file_path:
                         self.gt[file_path] = file_path.replace(".cu3s", "_0_RGB_mask.png")
 
-        logging.getLogger(__name__).info(f"EfficientAD dataset init: mode={self.mode} path={self.path}")
+        logging.getLogger(__name__).info(f"EfficientAD dataset init: mode={self.mode} dir={os.path.abspath(self.dataset_dir)}")
         logging.getLogger(__name__).info(f"Found {len(self.npz_paths)} NPZ files")
         if not self.uses_npz:
             logging.getLogger(__name__).info(f"Found {len(self.file_paths)} CU3S files; cuvis={'available' if cuvis is not None else 'missing'}")
-        logging.getLogger(__name__).info(f"ImageNet dir set: {self.imageNet_path is not None}; files={len(self.imgNet_files) if hasattr(self, 'imgNet_files') else 0}")
+        logging.getLogger(__name__).info(f"ImageNet dir set: {self.imagenet_dir is not None}; files={len(self.imgNet_files) if hasattr(self, 'imgNet_files') else 0}")
         if self.normalize:
             logging.getLogger(__name__).info(f"Normalization enabled; mean/std provided={self.mean is not None and self.std is not None}")
             if self.mean is None or self.std is None:
@@ -157,7 +157,7 @@ class EfficientADCuvisDataSet(Dataset):
         return cube
 
     def _load_imagenet(self) -> torch.Tensor:
-        if self.imageNet_file_ending == ".npy":
+        if self.imagenet_file_ending == ".npy":
             imgNet_img = np.load(random.choice(self.imgNet_files), allow_pickle=False)
         else:
             imgNet_img = np.array(cv.imread(random.choice(self.imgNet_files)))
