@@ -12,8 +12,8 @@ train:
     std: null
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
-        local_dir: data/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
+        local_dir: data/HyperspectralTiny
 
 val:
   type: PerPixelAECuvisDataSet
@@ -28,8 +28,8 @@ val:
     std: null
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
-        local_dir: data/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
+        local_dir: data/HyperspectralTiny
 
 test:
   type: PerPixelAECuvisDataSet
@@ -44,5 +44,5 @@ test:
     std: null
     obtain:
       hf:
-        repo_id: nghorbani/Hyperspektral-Small
-        local_dir: data/Hyperspektral-Small
+        repo_id: nghorbani/HyperspectralTiny
+        local_dir: data/HyperspectralTiny

@@ -17,12 +17,6 @@ except Exception:
 
 @DATASETS.register("PerPixelAECuvisDataSet")
 class PerPixelAECuvisDataSet(Dataset):
-    VARIANT_REPOS = {
-        "tiny": "nghorbani/HyperspectralTiny",
-        "small": "nghorbani/Hyperspektral-Small",
-        "medium": "nghorbani/HyperspectralMedium",
-        "large": "nghorbani/HyperspectralLarge",
-    }
     
     def __init__(
         self,
@@ -34,19 +28,9 @@ class PerPixelAECuvisDataSet(Dataset):
         normalize: bool = True,
         mean: Optional[List[float]] = None,
         std: Optional[List[float]] = None,
-        variant: Optional[str] = None,
         obtain: Optional[dict] = None,
         path: Optional[str] = None,
     ):
-        if variant and variant in self.VARIANT_REPOS:
-            if not obtain:
-                obtain = {}
-            if "hf" not in obtain:
-                obtain["hf"] = {}
-            if "repo_id" not in obtain["hf"]:
-                obtain["hf"]["repo_id"] = self.VARIANT_REPOS[variant]
-            if "local_dir" not in obtain["hf"]:
-                obtain["hf"]["local_dir"] = f"data/{variant}_dataset"
         
         if path and not dataset_dir:
             dataset_dir = path
@@ -58,7 +42,6 @@ class PerPixelAECuvisDataSet(Dataset):
         self.normalize = normalize
         self.mean = mean
         self.std = std
-        self.variant = variant
         if not os.path.isdir(self.path):
             if obtain and isinstance(obtain, dict) and "hf" in obtain:
                 hf = obtain.get("hf") or {}

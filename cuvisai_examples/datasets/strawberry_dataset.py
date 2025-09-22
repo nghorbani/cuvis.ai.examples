@@ -17,12 +17,6 @@ except Exception:
 
 @DATASETS.register("StrawberryDataset")
 class StrawberryDataset(Dataset):
-    VARIANT_REPOS = {
-        "tiny": "nghorbani/HyperspectralTiny",
-        "small": "nghorbani/Hyperspektral-Small",
-        "medium": "nghorbani/HyperspectralMedium",
-        "large": "nghorbani/HyperspectralLarge",
-    }
     
     def __init__(
         self,
@@ -37,7 +31,6 @@ class StrawberryDataset(Dataset):
         strawberry_range: Tuple[int, int] = (0, 220),
         sides_to_exclude: Optional[List[int]] = None,
         days_to_exclude: Optional[List[int]] = None,
-        variant: Optional[str] = None,
         obtain: Optional[dict] = None,
     ):
         if days_to_exclude is None:
@@ -49,18 +42,7 @@ class StrawberryDataset(Dataset):
         if cube_size is None:
             cube_size = [200, 200]
 
-        if variant and variant in self.VARIANT_REPOS:
-            if not obtain:
-                obtain = {}
-            if "hf" not in obtain:
-                obtain["hf"] = {}
-            if "repo_id" not in obtain["hf"]:
-                obtain["hf"]["repo_id"] = self.VARIANT_REPOS[variant]
-            if "local_dir" not in obtain["hf"]:
-                obtain["hf"]["local_dir"] = f"data/{variant}_dataset"
-
         self.root_dir = Path(root_dir)
-        self.variant = variant
 
         if not self.root_dir.exists():
             if obtain and isinstance(obtain, dict) and "hf" in obtain:
