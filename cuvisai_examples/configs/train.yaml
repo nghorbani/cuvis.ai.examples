@@ -1,6 +1,6 @@
 defaults:
   - model: efficientad/medium
-  - dataset: efficientad_train_val
+  - dataset: efficientad
   - runner: lightning
   - eval: default
   - logging: tensorboard
