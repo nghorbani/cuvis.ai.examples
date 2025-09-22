@@ -145,7 +145,7 @@ class EfficientADLightning(pl.LightningModule):
             s1 += y.sum(dim=[0, 2, 3])
             s2 += (y ** 2).sum(dim=[0, 2, 3])
             if i % 50 == 0:
-                bar.set_postfix_str(f"samples={int(n.item())}")
+                bar.set_postfix_str(f"samples={int(n[0].item())}")
         mean = s1 / n
         var = s2 / n - mean ** 2
         std = torch.sqrt(torch.clamp(var, min=1e-6))
