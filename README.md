@@ -35,7 +35,6 @@ Train a UNet to classify strawberries and find bruises on them.
 
 ### Verbose logging and sanity checks
 - Logs are printed to console and saved to ${work_dir}/train.log.
-- Progress bar is disabled by default so previous epoch logs stay visible (Trainer(enable_progress_bar=false)). Re-enable with: trainer.enable_progress_bar=true
 - Control verbosity via:
   - log_level=INFO|DEBUG
   - or logging.verbose=true (sets DEBUG)
