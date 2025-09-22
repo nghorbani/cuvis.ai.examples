@@ -6,7 +6,6 @@ params:
     padding: true
   learning_rate: 0.0001
   weight_decay: 0.00001
-  checkpoints: null
   use_imgNet_penalty: false
   loss:
     st_weight: 1.0

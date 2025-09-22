@@ -27,7 +27,6 @@ class EfficientADLightning(pl.LightningModule):
         in_channels: int = 6,
         learning_rate: float = 1e-4,
         weight_decay: float = 1e-5,
-        checkpoints: str | None = None,
         use_imgNet_penalty: bool = False,
         loss: dict | None = None,
         preprocessing: dict | None = None,
@@ -140,6 +139,11 @@ class EfficientADLightning(pl.LightningModule):
                 "Starting teacher mean/std computation over train loader"
             )
             self._compute_teacher_mean_std(self.trainer.train_dataloader)
+            if self.compute_percentile_quantiles and self.trainer.val_dataloaders is not None:
+                logging.getLogger(__name__).info(
+                    "Starting percentile quantile computation over val loader"
+                )
+                self._compute_quantiles(self.trainer.val_dataloaders)
         else:
             logging.getLogger(__name__).info(
                 "Skipping teacher mean/std computation (flag disabled)"
@@ -193,20 +197,7 @@ class EfficientADLightning(pl.LightningModule):
         )
 
     def on_validation_start(self) -> None:
-        if not self.compute_percentile_quantiles:
-            logging.getLogger(__name__).info(
-                "Skipping percentile quantile computation (flag disabled)"
-            )
-            return
-        if self.trainer.val_dataloaders is None:
-            logging.getLogger(__name__).info(
-                "Skipping percentile quantile computation (no val dataloader)"
-            )
-            return
-        logging.getLogger(__name__).info(
-            "Starting percentile quantile computation over val loader"
-        )
-        self._compute_quantiles(self.trainer.val_dataloaders)
+        pass
 
     @torch.no_grad()
     def _compute_quantiles(self, dl: DataLoader) -> None:
