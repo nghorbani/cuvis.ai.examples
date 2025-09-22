@@ -27,6 +27,7 @@ class EfficientADLightning(pl.LightningModule):
         in_channels: int = 6,
         learning_rate: float = 1e-4,
         weight_decay: float = 1e-5,
+        teacher_checkpoint: str | None = None,
         use_imgNet_penalty: bool = False,
         loss: dict | None = None,
         preprocessing: dict | None = None,
@@ -56,6 +57,9 @@ class EfficientADLightning(pl.LightningModule):
         self.student = self.backbones.student
         self.teacher = self.backbones.teacher
         self.ae = self.backbones.ae
+        
+        if teacher_checkpoint:
+            self._load_pretrain_teacher(teacher_checkpoint)
 
         self.register_buffer("teacher_mean", torch.zeros(1, 384, 1, 1))
         self.register_buffer("teacher_std", torch.ones(1, 384, 1, 1))
@@ -314,6 +318,20 @@ class EfficientADLightning(pl.LightningModule):
             logging.getLogger(__name__).warning(
                 f"Validation metrics failed: {e}; logged zeros."
             )
+
+    def _load_pretrain_teacher(self, checkpoint_path: str) -> None:
+        """Load pretrained teacher weights and freeze the teacher model."""
+        logging.getLogger(__name__).info(f"Loading teacher checkpoint from {checkpoint_path}")
+        try:
+            checkpoint = torch.load(checkpoint_path, map_location="cpu")
+            self.teacher.load_state_dict(checkpoint)
+            self.teacher.eval()
+            for param in self.teacher.parameters():
+                param.requires_grad = False
+            logging.getLogger(__name__).info("Teacher checkpoint loaded and frozen successfully")
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Failed to load teacher checkpoint: {e}")
+            raise
 
     def configure_optimizers(self):
         return torch.optim.Adam(
