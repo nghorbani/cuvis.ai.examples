@@ -116,3 +116,10 @@ Notes
   - Verify cuvis is installed and importable in the environment
   - Ensure dataset mode and filters match your data layout
 
+### Validation metrics
+- During validation, EfficientAD logs:
+  - val/auroc: AUROC computed from the continuous anomaly_map vs. binary masks (mask&gt;0)
+  - val/ap: Average Precision on the same predictions/targets
+- Metrics appear in the console/progress bar and are written to ${work_dir}/train.log.
+- Ensure your validation dataset provides pixel masks for defects to enable these metrics.
+
