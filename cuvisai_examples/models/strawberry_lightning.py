@@ -4,7 +4,6 @@ import torchvision.transforms
 import torch
 from torchmetrics.segmentation import DiceScore, MeanIoU
 from torchmetrics.classification import AveragePrecision, Accuracy, ROC, AUROC
-from torchvision.transforms.functional import equalize
 import torch.nn.functional as F
 
 from cuvisai_examples.registry import MODELS
@@ -36,7 +35,7 @@ class GeneralizedDiceLoss(torch.nn.Module):
         targets_flat = targets.view(B, C, -1)
         if self.mode == "advanced":
             gt_sum = targets_flat.sum(-1)
-            class_weights = 1.0 / (gt_sum ** 2 + self.epsilon)
+            class_weights = 1.0 / (gt_sum**2 + self.epsilon)
         else:
             class_weights = torch.tensor([0, 1, 1], device=inputs.device)
         intersection = (inputs_flat * targets_flat).sum(-1)
@@ -54,29 +53,74 @@ class GeneralizedDiceLoss(torch.nn.Module):
 
 @MODELS.register("strawberry.Lightning")
 class StrawberryLightning(pl.LightningModule):
-    def __init__(self, pca_channels=8, cube_channels=224, num_classes=4, learning_rate=1e-3, weight_decay=1e-5, image_size=(200, 200), data_loader=None):
+    def __init__(
+        self,
+        pca_channels=8,
+        cube_channels=224,
+        num_classes=4,
+        learning_rate=1e-3,
+        weight_decay=1e-5,
+        image_size=(200, 200),
+        data_loader=None,
+    ):
         super().__init__()
         self.pca_channels = pca_channels
         self.cube_channels = cube_channels
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.num_classes = num_classes
-        self.model = FreshTwin2DUNet(in_channels=self.pca_channels, num_classes=self.num_classes, pca=None)
-        self.roc = ROC(task='multiclass', num_classes=self.num_classes)
-        self.auroc = AUROC(task='multiclass', num_classes=self.num_classes)
-        self.ap = AveragePrecision(task='multiclass', num_classes=self.num_classes)
-        self.acc1 = Accuracy(task='multiclass', num_classes=self.num_classes, threshold=0.1)
-        self.acc2 = Accuracy(task='multiclass', num_classes=self.num_classes, threshold=0.2)
-        self.acc3 = Accuracy(task='multiclass', num_classes=self.num_classes, threshold=0.3)
-        self.acc4 = Accuracy(task='multiclass', num_classes=self.num_classes, threshold=0.4)
-        self.acc5 = Accuracy(task='multiclass', num_classes=self.num_classes, threshold=0.5)
-        self.dice = DiceScore(num_classes=self.num_classes, include_background=False, input_format='one-hot')
+        self.model = FreshTwin2DUNet(
+            in_channels=self.pca_channels, num_classes=self.num_classes, pca=None
+        )
+        self.roc = ROC(task="multiclass", num_classes=self.num_classes)
+        self.auroc = AUROC(task="multiclass", num_classes=self.num_classes)
+        self.ap = AveragePrecision(task="multiclass", num_classes=self.num_classes)
+        self.acc1 = Accuracy(
+            task="multiclass", num_classes=self.num_classes, threshold=0.1
+        )
+        self.acc2 = Accuracy(
+            task="multiclass", num_classes=self.num_classes, threshold=0.2
+        )
+        self.acc3 = Accuracy(
+            task="multiclass", num_classes=self.num_classes, threshold=0.3
+        )
+        self.acc4 = Accuracy(
+            task="multiclass", num_classes=self.num_classes, threshold=0.4
+        )
+        self.acc5 = Accuracy(
+            task="multiclass", num_classes=self.num_classes, threshold=0.5
+        )
+        self.dice = DiceScore(
+            num_classes=self.num_classes,
+            include_background=False,
+            input_format="one-hot",
+        )
         self.dice_bg = DiceScore(num_classes=self.num_classes, include_background=True)
-        self.dice1 = DiceScore(num_classes=self.num_classes, include_background=False, input_format='one-hot')
-        self.dice2 = DiceScore(num_classes=self.num_classes, include_background=False, input_format='one-hot')
-        self.dice3 = DiceScore(num_classes=self.num_classes, include_background=False, input_format='one-hot')
-        self.dice4 = DiceScore(num_classes=self.num_classes, include_background=False, input_format='one-hot')
-        self.dice5 = DiceScore(num_classes=self.num_classes, include_background=False, input_format='one-hot')
+        self.dice1 = DiceScore(
+            num_classes=self.num_classes,
+            include_background=False,
+            input_format="one-hot",
+        )
+        self.dice2 = DiceScore(
+            num_classes=self.num_classes,
+            include_background=False,
+            input_format="one-hot",
+        )
+        self.dice3 = DiceScore(
+            num_classes=self.num_classes,
+            include_background=False,
+            input_format="one-hot",
+        )
+        self.dice4 = DiceScore(
+            num_classes=self.num_classes,
+            include_background=False,
+            input_format="one-hot",
+        )
+        self.dice5 = DiceScore(
+            num_classes=self.num_classes,
+            include_background=False,
+            input_format="one-hot",
+        )
         self.iou_bg = MeanIoU(num_classes=self.num_classes, include_background=True)
         self.iou1 = MeanIoU(num_classes=self.num_classes, include_background=False)
         self.iou2 = MeanIoU(num_classes=self.num_classes, include_background=False)
@@ -98,15 +142,26 @@ class StrawberryLightning(pl.LightningModule):
                 self.pca = None
 
     def setup(self, stage):
-        if self.pca is not None and getattr(self.pca, "n_samples_seen_", 0) == 0 and self.data_loader is not None:
+        if (
+            self.pca is not None
+            and getattr(self.pca, "n_samples_seen_", 0) == 0
+            and self.data_loader is not None
+        ):
             for batch in self.data_loader:
-                pca_image = batch["image"].squeeze(0).permute(1, 2, 0).reshape(-1, self.cube_channels)
+                pca_image = (
+                    batch["image"]
+                    .squeeze(0)
+                    .permute(1, 2, 0)
+                    .reshape(-1, self.cube_channels)
+                )
                 self.pca.partial_fit(pca_image)
 
     def training_step(self, batch, batch_idx):
         res = self.model.forward(batch["image"])
         pred = torch.softmax(res, dim=0)
-        one_hot_gt = torch.nn.functional.one_hot(batch["mask"].type(torch.long), num_classes=self.num_classes).movedim(-1, 1)
+        one_hot_gt = torch.nn.functional.one_hot(
+            batch["mask"].type(torch.long), num_classes=self.num_classes
+        ).movedim(-1, 1)
         loss = GeneralizedDiceLoss(generalize=True)(pred.unsqueeze(0), one_hot_gt)
         self.train_loss.append(loss.item())
         self.log("train/loss", loss, prog_bar=True)
@@ -114,13 +169,17 @@ class StrawberryLightning(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         res = self.model.forward(batch["image"])
-        gt_mask = batch['mask']
+        gt_mask = batch["mask"]
         pred = torch.softmax(res, dim=0).unsqueeze(0)
-        one_hot_gt = torch.nn.functional.one_hot(gt_mask.type(torch.long), num_classes=self.num_classes).movedim(-1, 1)
+        one_hot_gt = torch.nn.functional.one_hot(
+            gt_mask.type(torch.long), num_classes=self.num_classes
+        ).movedim(-1, 1)
         loss = GeneralizedDiceLoss(generalize=True)(pred, one_hot_gt).item()
         self.val_loss.append(loss)
         prediction = torch.argmax(res, dim=0, keepdim=True)
-        one_hot_pred = torch.nn.functional.one_hot(prediction.type(torch.long), num_classes=self.num_classes).movedim(-1, 1)
+        one_hot_pred = torch.nn.functional.one_hot(
+            prediction.type(torch.long), num_classes=self.num_classes
+        ).movedim(-1, 1)
         self.dice.update(one_hot_pred, one_hot_gt)
         self.dice_bg.update(one_hot_pred > 0.5, one_hot_gt)
         self.dice1.update(one_hot_pred > 0.1, one_hot_gt)
@@ -145,36 +204,42 @@ class StrawberryLightning(pl.LightningModule):
         return loss
 
     def on_validation_epoch_end(self):
-        self.log('val_im/AP', self.ap, on_epoch=True)
-        self.log('val_im/Acc_0.1', self.acc1, on_epoch=True)
-        self.log('val_im/Acc_0.2', self.acc2, on_epoch=True)
-        self.log('val_im/Acc_0.3', self.acc3, on_epoch=True)
-        self.log('val_im/Acc_0.4', self.acc4, on_epoch=True)
-        self.log('val_im/Acc_0.5', self.acc5, on_epoch=True)
-        self.log('val_IoU/t=0.5_BG', self.iou_bg.compute(), on_epoch=True)
-        self.log('val_IoU/t=0.1', self.iou1, on_epoch=True)
-        self.log('val_IoU/t=0.2', self.iou2, on_epoch=True)
-        self.log('val_IoU/t=0.3', self.iou3, on_epoch=True)
-        self.log('val_IoU/t=0.4', self.iou4, on_epoch=True)
-        self.log('val_IoU/t=0.5', self.iou5, on_epoch=True)
-        self.log('val_F1/dice', self.dice, on_epoch=True)
-        self.log('val_F1/t=0.1', self.dice1, on_epoch=True)
-        self.log('val_F1/t=0.2', self.dice2, on_epoch=True)
-        self.log('val_F1/t=0.3', self.dice3, on_epoch=True)
-        self.log('val_F1/t=0.4', self.dice4, on_epoch=True)
-        self.log('val_F1/t=0.5', self.dice5, on_epoch=True)
-        self.log('val_ROC/AUROC', self.auroc, on_epoch=True)
+        self.log("val_im/AP", self.ap, on_epoch=True)
+        self.log("val_im/Acc_0.1", self.acc1, on_epoch=True)
+        self.log("val_im/Acc_0.2", self.acc2, on_epoch=True)
+        self.log("val_im/Acc_0.3", self.acc3, on_epoch=True)
+        self.log("val_im/Acc_0.4", self.acc4, on_epoch=True)
+        self.log("val_im/Acc_0.5", self.acc5, on_epoch=True)
+        self.log("val_IoU/t=0.5_BG", self.iou_bg.compute(), on_epoch=True)
+        self.log("val_IoU/t=0.1", self.iou1, on_epoch=True)
+        self.log("val_IoU/t=0.2", self.iou2, on_epoch=True)
+        self.log("val_IoU/t=0.3", self.iou3, on_epoch=True)
+        self.log("val_IoU/t=0.4", self.iou4, on_epoch=True)
+        self.log("val_IoU/t=0.5", self.iou5, on_epoch=True)
+        self.log("val_F1/dice", self.dice, on_epoch=True)
+        self.log("val_F1/t=0.1", self.dice1, on_epoch=True)
+        self.log("val_F1/t=0.2", self.dice2, on_epoch=True)
+        self.log("val_F1/t=0.3", self.dice3, on_epoch=True)
+        self.log("val_F1/t=0.4", self.dice4, on_epoch=True)
+        self.log("val_F1/t=0.5", self.dice5, on_epoch=True)
+        self.log("val_ROC/AUROC", self.auroc, on_epoch=True)
         self.roc.reset()
         self.val_loss = []
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(itertools.chain(self.parameters()), lr=self.learning_rate, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(
+            itertools.chain(self.parameters()),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay,
+        )
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
-                "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2),
+                "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    optimizer, "min", patience=2
+                ),
                 "monitor": "train/epoch_loss",
                 "frequency": 1,
-                "interval": "epoch"
+                "interval": "epoch",
             },
         }

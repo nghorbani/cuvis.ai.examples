@@ -2,6 +2,7 @@ import json
 import os
 from cuvisai_examples.registry import REPORTERS
 
+
 @REPORTERS.register("PerPixelAEReporter")
 class PerPixelAEReporter:
     def __init__(self, out_dir: str | None = None):

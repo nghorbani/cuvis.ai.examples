@@ -3,11 +3,24 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from cuvisai_examples.registry import MODELS
 
+
 @MODELS.register("perpixel_ae.Autoencoder")
 class PerPixelAutoencoder(pl.LightningModule):
-    def __init__(self, in_features: int = 6, hidden_dims=(64, 32), lr: float = 1e-3, weight_decay: float = 0.0):
+    def __init__(
+        self,
+        in_features: int = 6,
+        hidden_dims=(64, 32),
+        lr: float = 1e-3,
+        weight_decay: float = 0.0,
+    ):
         super().__init__()
-        dims = [in_features, *hidden_dims, hidden_dims[-1], *reversed(hidden_dims[:-1]), in_features]
+        dims = [
+            in_features,
+            *hidden_dims,
+            hidden_dims[-1],
+            *reversed(hidden_dims[:-1]),
+            in_features,
+        ]
         layers = []
         for i in range(len(dims) - 1):
             layers.append(nn.Linear(dims[i], dims[i + 1]))
@@ -35,4 +48,6 @@ class PerPixelAutoencoder(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        return torch.optim.Adam(
+            self.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
