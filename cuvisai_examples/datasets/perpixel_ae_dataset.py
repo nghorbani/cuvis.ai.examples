@@ -1,13 +1,13 @@
 from typing import Optional, List
 import os
 from pathlib import Path
+import logging
 import torch
 from torch.utils.data import Dataset
 import numpy as np
 import cv2 as cv
 
 from cuvisai_examples.registry import DATASETS
-
 try:
     import cuvis
     from cuvis.cuvis_types import ProcessingMode
@@ -55,7 +55,7 @@ class PerPixelAECuvisDataSet(Dataset):
         )
 
         self.proc = None
-
+        self._dbg = 0
     def __len__(self):
         return len(self.images)
 
@@ -90,4 +90,7 @@ class PerPixelAECuvisDataSet(Dataset):
     def __getitem__(self, idx: int):
         file_path, index = self.images[idx]
         cube = self._load_cube(file_path, index)
+        if self._dbg < 3:
+            logging.getLogger(__name__).debug(f"PerPixelAE item {idx}: cube shape={tuple(cube.shape)} channels_sel={self.channels}")
+            self._dbg += 1
         return {"image": cube, "label": torch.tensor(0, dtype=torch.long), "meta": {"path": file_path, "index": index}}
