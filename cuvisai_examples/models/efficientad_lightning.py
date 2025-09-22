@@ -1,5 +1,6 @@
 import itertools
 import random
+import logging
 import torch
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
@@ -7,7 +8,6 @@ from torchmetrics.classification import AUROC, ROC, PrecisionRecallCurve, Averag
 from torchmetrics.segmentation import DiceScore, MeanIoU
 import torch.nn.functional as F
 from cuvisai_examples.registry import MODELS
-
 
 def _reduce_tensor_elems(tensor: torch.Tensor, m: int = 2 ** 24) -> torch.Tensor:
     t = tensor.flatten()
@@ -116,6 +116,8 @@ class EfficientADLightning(pl.LightningModule):
         self.log("train/loss", loss, on_epoch=True, prog_bar=True)
         return loss
 
+        logging.getLogger(__name__).info("Starting teacher mean/std computation over train loader")
+
     def on_train_start(self) -> None:
         if self.compute_teacher_stats:
             self._compute_teacher_mean_std(self.trainer.train_dataloader)
@@ -138,8 +140,12 @@ class EfficientADLightning(pl.LightningModule):
         mean = s1 / n
         var = s2 / n - mean ** 2
         std = torch.sqrt(torch.clamp(var, min=1e-6))
+        logging.getLogger(__name__).info("Finished teacher mean/std computation")
+
         self.teacher_mean = mean.view(1, -1, 1, 1)
         self.teacher_std = std.view(1, -1, 1, 1)
+
+        logging.getLogger(__name__).info("Starting percentile quantile computation over val loader")
 
     def on_validation_start(self) -> None:
         if self.compute_percentile_quantiles and self.trainer.val_dataloaders is not None:
@@ -163,6 +169,8 @@ class EfficientADLightning(pl.LightningModule):
             self.qa_st = torch.quantile(msf, q=0.9)
             self.qb_st = torch.quantile(msf, q=0.995)
             self.qa_ae = torch.quantile(maf, q=0.9)
+            logging.getLogger(__name__).info(f"Quantiles computed: qa_st={self.qa_st.item():.6f} qb_st={self.qb_st.item():.6f} qa_ae={self.qa_ae.item():.6f} qb_ae={self.qb_ae.item():.6f}")
+
             self.qb_ae = torch.quantile(maf, q=0.995)
 
     def configure_optimizers(self):
