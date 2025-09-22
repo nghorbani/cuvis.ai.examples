@@ -4,7 +4,7 @@ def main():
     msg = (
         "This script is deprecated.\n"
         "Use the new CLI instead:\n"
-        "  cuvisai-train model=strawberry dataset=strawberry_train_val\n"
+        "  cuvisai-train model=strawberry dataset=strawberry\n"
         "Override params via Hydra, e.g. trainer.max_epochs=1\n"
     )
     print(msg)
