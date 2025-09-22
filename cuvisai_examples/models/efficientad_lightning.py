@@ -132,7 +132,8 @@ class EfficientADLightning(pl.LightningModule):
             total = len(dl)  # may be NotImplemented for some loaders
         except Exception:
             total = None
-        bar = tqdm(dl, total=total, desc="Teacher stats", leave=True, position=1, disable=not sys.stderr.isatty())
+        disable = False if getattr(self.trainer, "enable_progress_bar", True) else not (sys.stderr.isatty() or sys.stdout.isatty())
+        bar = tqdm(dl, total=total, desc="Teacher stats", leave=True, position=1, disable=disable)
         for i, b in enumerate(bar):
             y = self.teacher(b["image"].to(self.device))
             if n is None:
@@ -173,7 +174,8 @@ class EfficientADLightning(pl.LightningModule):
             total = len(dl)
         except Exception:
             total = None
-        bar = tqdm(dl or [], total=total, desc="Quantiles (good samples)", leave=True, position=2, disable=not sys.stderr.isatty())
+        disable = False if getattr(self.trainer, "enable_progress_bar", True) else not (sys.stderr.isatty() or sys.stdout.isatty())
+        bar = tqdm(dl or [], total=total, desc="Quantiles (good samples)", leave=True, position=2, disable=disable)
         for j, batch in enumerate(bar):
             added = 0
             for img, label in zip(batch["image"], batch["label"], strict=True):
