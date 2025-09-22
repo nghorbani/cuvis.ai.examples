@@ -15,7 +15,6 @@ logging:
 trainer:
   max_epochs: 1
   accelerator: cuda
-  enable_progress_bar: false
 
 dataloader:
   batch_size: 1
