@@ -4,3 +4,11 @@ params:
   save_dir: "./work_dirs"
   max_epochs: ${trainer.max_epochs}
   accelerator: ${trainer.accelerator}
+  checkpoint:
+    monitor: "val/auroc"  # Configurable metric for EfficientAD
+    mode: "max"
+    save_top_k: 1
+    save_last: true
+    verbose: true
+    filename: "best-{epoch:02d}-{val/auroc:.4f}"
+    dirpath: "./work_dirs/checkpoints"
