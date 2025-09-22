@@ -5,11 +5,9 @@ import logging
 import torch
 from torch.utils.data import Dataset
 import torchvision
-from torchvision import transforms
 import numpy as np
 import cv2 as cv
 import random
-from functools import partial
 
 from cuvisai_examples.registry import DATASETS
 
@@ -19,6 +17,7 @@ try:
 except Exception:
     cuvis = None
     ProcessingMode = None
+
 
 @DATASETS.register("EfficientADCuvisDataSet")
 class EfficientADCuvisDataSet(Dataset):
@@ -57,15 +56,27 @@ class EfficientADCuvisDataSet(Dataset):
                 if repo_id and token:
                     try:
                         from huggingface_hub import snapshot_download
-                        logging.getLogger(__name__).info(f"Dataset dir missing; downloading from HF: repo_id={repo_id} to {local_dir}")
-                        snapshot_download(repo_id=repo_id, repo_type="dataset", local_dir=str(local_dir), local_dir_use_symlinks=False, token=token)
+
+                        logging.getLogger(__name__).info(
+                            f"Dataset dir missing; downloading from HF: repo_id={repo_id} to {local_dir}"
+                        )
+                        snapshot_download(
+                            repo_id=repo_id,
+                            repo_type="dataset",
+                            local_dir=str(local_dir),
+                            local_dir_use_symlinks=False,
+                            token=token,
+                        )
                     except Exception as e:
                         logging.getLogger(__name__).warning(f"HF download failed: {e}")
                 else:
-                    logging.getLogger(__name__).warning("Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download.")
+                    logging.getLogger(__name__).warning(
+                        "Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download."
+                    )
             else:
-                logging.getLogger(__name__).warning(f"Dataset dir not found: {self.dataset_dir}")
-
+                logging.getLogger(__name__).warning(
+                    f"Dataset dir not found: {self.dataset_dir}"
+                )
 
         self.npz_paths = [
             os.path.join(root, f)
@@ -96,7 +107,8 @@ class EfficientADCuvisDataSet(Dataset):
                 os.path.join(root, f)
                 for root, _, files in os.walk(imagenet_dir)
                 for f in files
-                if f.lower().endswith(self.imagenet_file_ending) and mode in os.path.join(root, f)
+                if f.lower().endswith(self.imagenet_file_ending)
+                and mode in os.path.join(root, f)
             ]
         else:
             self.imgNet_files = []
@@ -106,23 +118,39 @@ class EfficientADCuvisDataSet(Dataset):
             if self.uses_npz:
                 for file_path in self.npz_paths:
                     if "_ok_ok_" not in file_path:
-                        self.gt[file_path] = file_path.replace(".npz", "_0_RGB_mask.png")
+                        self.gt[file_path] = file_path.replace(
+                            ".npz", "_0_RGB_mask.png"
+                        )
             else:
                 for file_path in self.file_paths:
                     if "_ok_ok_" not in file_path:
-                        self.gt[file_path] = file_path.replace(".cu3s", "_0_RGB_mask.png")
+                        self.gt[file_path] = file_path.replace(
+                            ".cu3s", "_0_RGB_mask.png"
+                        )
 
-        logging.getLogger(__name__).info(f"EfficientAD dataset init: mode={self.mode} dir={os.path.abspath(self.dataset_dir)}")
+        logging.getLogger(__name__).info(
+            f"EfficientAD dataset init: mode={self.mode} dir={os.path.abspath(self.dataset_dir)}"
+        )
         logging.getLogger(__name__).info(f"Found {len(self.npz_paths)} NPZ files")
         if not self.uses_npz:
-            logging.getLogger(__name__).info(f"Found {len(self.file_paths)} CU3S files; cuvis={'available' if cuvis is not None else 'missing'}")
-        logging.getLogger(__name__).info(f"ImageNet dir set: {self.imagenet_dir is not None}; files={len(self.imgNet_files) if hasattr(self, 'imgNet_files') else 0}")
+            logging.getLogger(__name__).info(
+                f"Found {len(self.file_paths)} CU3S files; cuvis={'available' if cuvis is not None else 'missing'}"
+            )
+        logging.getLogger(__name__).info(
+            f"ImageNet dir set: {self.imagenet_dir is not None}; files={len(self.imgNet_files) if hasattr(self, 'imgNet_files') else 0}"
+        )
         if self.normalize:
-            logging.getLogger(__name__).info(f"Normalization enabled; mean/std provided={self.mean is not None and self.std is not None}")
+            logging.getLogger(__name__).info(
+                f"Normalization enabled; mean/std provided={self.mean is not None and self.std is not None}"
+            )
             if self.mean is None or self.std is None:
-                logging.getLogger(__name__).warning("Normalization requested but mean/std not provided; skipping normalization.")
+                logging.getLogger(__name__).warning(
+                    "Normalization requested but mean/std not provided; skipping normalization."
+                )
         if self.mode == "train" and not self.imgNet_files:
-            logging.getLogger(__name__).warning("No ImageNet files found; imgNet penalty images will be unavailable.")
+            logging.getLogger(__name__).warning(
+                "No ImageNet files found; imgNet penalty images will be unavailable."
+            )
 
         self.transform = lambda x: x
         self.proc = None
@@ -143,7 +171,9 @@ class EfficientADCuvisDataSet(Dataset):
         if self.normalize and self.mean is not None and self.std is not None:
             cube = torchvision.transforms.Normalize(mean=self.mean, std=self.std)(cube)
         if cube.shape[1] > self.max_img_shape or cube.shape[2] > self.max_img_shape:
-            cube = torchvision.transforms.Resize(size=self.max_img_shape - 1, max_size=self.max_img_shape)(cube)
+            cube = torchvision.transforms.Resize(
+                size=self.max_img_shape - 1, max_size=self.max_img_shape
+            )(cube)
         if self.channels == "RGB":
             cube = cube[:3, :, :]
         elif self.channels == "SWIR":
@@ -168,7 +198,9 @@ class EfficientADCuvisDataSet(Dataset):
         if self.normalize and self.mean is not None and self.std is not None:
             cube = torchvision.transforms.Normalize(mean=self.mean, std=self.std)(cube)
         if cube.shape[1] > self.max_img_shape or cube.shape[2] > self.max_img_shape:
-            cube = torchvision.transforms.Resize(size=self.max_img_shape - 1, max_size=self.max_img_shape)(cube)
+            cube = torchvision.transforms.Resize(
+                size=self.max_img_shape - 1, max_size=self.max_img_shape
+            )(cube)
         if self.channels == "RGB":
             cube = cube[:3, :, :]
         elif self.channels == "SWIR":
@@ -183,8 +215,15 @@ class EfficientADCuvisDataSet(Dataset):
         imgNet_img = np.transpose(imgNet_img, (2, 0, 1))
         imgNet_img = (imgNet_img / 255).astype(np.float32)
         imgNet_img = torch.from_numpy(imgNet_img)
-        if imgNet_img.shape[1] > 1000 or imgNet_img.shape[2] > 1000 or imgNet_img.shape[1] < 256 or imgNet_img.shape[2] < 256:
-            imgNet_img = torchvision.transforms.Resize(size=500, max_size=1000)(imgNet_img)
+        if (
+            imgNet_img.shape[1] > 1000
+            or imgNet_img.shape[2] > 1000
+            or imgNet_img.shape[1] < 256
+            or imgNet_img.shape[2] < 256
+        ):
+            imgNet_img = torchvision.transforms.Resize(size=500, max_size=1000)(
+                imgNet_img
+            )
         return imgNet_img
 
     def __getitem__(self, idx: int):
@@ -192,53 +231,113 @@ class EfficientADCuvisDataSet(Dataset):
             npz_path = self.npz_paths[idx]
             cube = self._load_cube_from_npz(npz_path)
             if self._dbg < 3:
-                logging.getLogger(__name__).debug(f"EfficientAD item {idx}: npz cube shape={tuple(cube.shape)} channels_sel={self.channels}")
+                logging.getLogger(__name__).debug(
+                    f"EfficientAD item {idx}: npz cube shape={tuple(cube.shape)} channels_sel={self.channels}"
+                )
                 self._dbg += 1
             if self.mode == "train":
-                imgNet_img = self._load_imagenet() if self.imgNet_files else torch.zeros((3, cube.shape[-2], cube.shape[-1]), dtype=cube.dtype)
+                imgNet_img = (
+                    self._load_imagenet()
+                    if self.imgNet_files
+                    else torch.zeros(
+                        (3, cube.shape[-2], cube.shape[-1]), dtype=cube.dtype
+                    )
+                )
                 return self.transform({"image": cube, "imgNet_img": imgNet_img})
             else:
                 if "_ok_ok_" in npz_path:
-                    return {"image": cube, "label": torch.tensor(0, dtype=torch.long), "mask": torch.zeros(cube.shape[-2:]), "defect": "good"}
+                    return {
+                        "image": cube,
+                        "label": torch.tensor(0, dtype=torch.long),
+                        "mask": torch.zeros(cube.shape[-2:]),
+                        "defect": "good",
+                    }
                 else:
                     defect = Path(npz_path).parent.name
-                    if hasattr(self, "gt") and npz_path in self.gt and os.path.exists(self.gt[npz_path]):
-                        mask = cv.imread(self.gt[npz_path], cv.IMREAD_GRAYSCALE)[300:-300, 300:-300]
+                    if (
+                        hasattr(self, "gt")
+                        and npz_path in self.gt
+                        and os.path.exists(self.gt[npz_path])
+                    ):
+                        mask = cv.imread(self.gt[npz_path], cv.IMREAD_GRAYSCALE)[
+                            300:-300, 300:-300
+                        ]
                         mask = torch.from_numpy(mask).unsqueeze(0)
-                        mask_out = torchvision.transforms.Resize(size=cube.shape[1:], interpolation=torchvision.transforms.InterpolationMode.NEAREST)(mask).squeeze(0)
+                        mask_out = torchvision.transforms.Resize(
+                            size=cube.shape[1:],
+                            interpolation=torchvision.transforms.InterpolationMode.NEAREST,
+                        )(mask).squeeze(0)
                         if self._dbg < 3:
-                            logging.getLogger(__name__).debug(f"EfficientAD eval item {idx}: mask found for {npz_path} -> resized to {tuple(mask_out.shape)}")
+                            logging.getLogger(__name__).debug(
+                                f"EfficientAD eval item {idx}: mask found for {npz_path} -> resized to {tuple(mask_out.shape)}"
+                            )
                             self._dbg += 1
                     else:
                         mask_out = torch.zeros(cube.shape[-2:])
                         if self._dbg < 3:
-                            logging.getLogger(__name__).debug(f"EfficientAD eval item {idx}: NO mask for {npz_path}, returning zeros with shape={tuple(mask_out.shape)}")
+                            logging.getLogger(__name__).debug(
+                                f"EfficientAD eval item {idx}: NO mask for {npz_path}, returning zeros with shape={tuple(mask_out.shape)}"
+                            )
                             self._dbg += 1
-                    return {"image": cube, "label": torch.tensor(1, dtype=torch.long), "mask": mask_out, "defect": defect}
+                    return {
+                        "image": cube,
+                        "label": torch.tensor(1, dtype=torch.long),
+                        "mask": mask_out,
+                        "defect": defect,
+                    }
         else:
             file_path, index = self.images[idx]
             cube = self._load_cube(file_path, index)
             if self._dbg < 3:
-                logging.getLogger(__name__).debug(f"EfficientAD item {idx}: cu3s cube shape={tuple(cube.shape)} channels_sel={self.channels}")
+                logging.getLogger(__name__).debug(
+                    f"EfficientAD item {idx}: cu3s cube shape={tuple(cube.shape)} channels_sel={self.channels}"
+                )
                 self._dbg += 1
             if self.mode == "train":
-                imgNet_img = self._load_imagenet() if self.imgNet_files else torch.zeros_like(cube[:3])
+                imgNet_img = (
+                    self._load_imagenet()
+                    if self.imgNet_files
+                    else torch.zeros_like(cube[:3])
+                )
                 return self.transform({"image": cube, "imgNet_img": imgNet_img})
             else:
                 if "_ok_ok_" in file_path:
-                    return {"image": cube, "label": torch.tensor(0, dtype=torch.long), "mask": torch.zeros(cube.shape[-2:]), "defect": "good"}
+                    return {
+                        "image": cube,
+                        "label": torch.tensor(0, dtype=torch.long),
+                        "mask": torch.zeros(cube.shape[-2:]),
+                        "defect": "good",
+                    }
                 else:
                     defect = Path(file_path).parent.name
-                    if hasattr(self, "gt") and file_path in self.gt and os.path.exists(self.gt[file_path]):
-                        mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[300:-300, 300:-300]
+                    if (
+                        hasattr(self, "gt")
+                        and file_path in self.gt
+                        and os.path.exists(self.gt[file_path])
+                    ):
+                        mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[
+                            300:-300, 300:-300
+                        ]
                         mask = torch.from_numpy(mask).unsqueeze(0)
-                        mask_out = torchvision.transforms.Resize(size=cube.shape[1:], interpolation=torchvision.transforms.InterpolationMode.NEAREST)(mask).squeeze(0)
+                        mask_out = torchvision.transforms.Resize(
+                            size=cube.shape[1:],
+                            interpolation=torchvision.transforms.InterpolationMode.NEAREST,
+                        )(mask).squeeze(0)
                         if self._dbg < 3:
-                            logging.getLogger(__name__).debug(f"EfficientAD eval item {idx}: mask found for {file_path} -> resized to {tuple(mask_out.shape)}")
+                            logging.getLogger(__name__).debug(
+                                f"EfficientAD eval item {idx}: mask found for {file_path} -> resized to {tuple(mask_out.shape)}"
+                            )
                             self._dbg += 1
                     else:
                         mask_out = torch.zeros(cube.shape[-2:])
                         if self._dbg < 3:
-                            logging.getLogger(__name__).debug(f"EfficientAD eval item {idx}: NO mask for {file_path}, returning zeros with shape={tuple(mask_out.shape)}")
+                            logging.getLogger(__name__).debug(
+                                f"EfficientAD eval item {idx}: NO mask for {file_path}, returning zeros with shape={tuple(mask_out.shape)}"
+                            )
                             self._dbg += 1
-                    return {"image": cube, "label": torch.tensor(1, dtype=torch.long), "mask": mask_out, "defect": defect}
+                    return {
+                        "image": cube,
+                        "label": torch.tensor(1, dtype=torch.long),
+                        "mask": mask_out,
+                        "defect": defect,
+                    }

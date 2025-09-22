@@ -1,15 +1,15 @@
-import os
 from dotenv import load_dotenv
-load_dotenv(override=True)
 
 import hydra
 from omegaconf import DictConfig
-from cuvisai_examples.registry import EVALUATORS, REPORTERS, build_from_cfg
+from cuvisai_examples.registry import REPORTERS, build_from_cfg
+
+load_dotenv(override=True)
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="report")
 def main(cfg: DictConfig):
-    evaluator = build_from_cfg(cfg.eval, EVALUATORS)
+    #evaluator = build_from_cfg(cfg.eval, EVALUATORS)
     metrics = {"status": "ok"}
     reporter = build_from_cfg(cfg.reporting, REPORTERS)
     reporter.save_metrics(metrics)

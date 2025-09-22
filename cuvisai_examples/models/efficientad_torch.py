@@ -6,13 +6,19 @@ import math
 
 
 class SmallPatchDescriptionNetwork(nn.Module):
-    def __init__(self, out_channels: int, padding: bool = False, in_channels: int = 6) -> None:
+    def __init__(
+        self, out_channels: int, padding: bool = False, in_channels: int = 6
+    ) -> None:
         super().__init__()
         pad_mult = 1 if padding else 0
-        self.conv1 = nn.Conv2d(in_channels, 128, kernel_size=4, stride=1, padding=3 * pad_mult)
+        self.conv1 = nn.Conv2d(
+            in_channels, 128, kernel_size=4, stride=1, padding=3 * pad_mult
+        )
         self.conv2 = nn.Conv2d(128, 256, kernel_size=4, stride=1, padding=3 * pad_mult)
         self.conv3 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1 * pad_mult)
-        self.conv4 = nn.Conv2d(256, out_channels, kernel_size=4, stride=1, padding=0 * pad_mult)
+        self.conv4 = nn.Conv2d(
+            256, out_channels, kernel_size=4, stride=1, padding=0 * pad_mult
+        )
         self.avgpool1 = nn.AvgPool2d(kernel_size=2, stride=2, padding=1 * pad_mult)
         self.avgpool2 = nn.AvgPool2d(kernel_size=2, stride=2, padding=1 * pad_mult)
 
@@ -28,15 +34,23 @@ class SmallPatchDescriptionNetwork(nn.Module):
 
 
 class MediumPatchDescriptionNetwork(nn.Module):
-    def __init__(self, out_channels: int, padding: bool = False, in_channels: int = 6) -> None:
+    def __init__(
+        self, out_channels: int, padding: bool = False, in_channels: int = 6
+    ) -> None:
         super().__init__()
         pad_mult = 1 if padding else 0
-        self.conv1 = nn.Conv2d(in_channels, 256, kernel_size=4, stride=1, padding=3 * pad_mult)
+        self.conv1 = nn.Conv2d(
+            in_channels, 256, kernel_size=4, stride=1, padding=3 * pad_mult
+        )
         self.conv2 = nn.Conv2d(256, 512, kernel_size=4, stride=1, padding=3 * pad_mult)
         self.conv3 = nn.Conv2d(512, 512, kernel_size=1, stride=1, padding=0 * pad_mult)
         self.conv4 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1 * pad_mult)
-        self.conv5 = nn.Conv2d(512, out_channels, kernel_size=4, stride=1, padding=0 * pad_mult)
-        self.conv6 = nn.Conv2d(out_channels, out_channels, kernel_size=1, stride=1, padding=0 * pad_mult)
+        self.conv5 = nn.Conv2d(
+            512, out_channels, kernel_size=4, stride=1, padding=0 * pad_mult
+        )
+        self.conv6 = nn.Conv2d(
+            out_channels, out_channels, kernel_size=1, stride=1, padding=0 * pad_mult
+        )
         self.avgpool1 = nn.AvgPool2d(kernel_size=2, stride=2, padding=1 * pad_mult)
         self.avgpool2 = nn.AvgPool2d(kernel_size=2, stride=2, padding=1 * pad_mult)
 
@@ -91,27 +105,45 @@ class Decoder(nn.Module):
         self.dropout5 = nn.Dropout(p=0.2)
         self.dropout6 = nn.Dropout(p=0.2)
 
-    def forward(self, x: torch.Tensor, image_size: tuple[int, int] | torch.Size) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, image_size: tuple[int, int] | torch.Size
+    ) -> torch.Tensor:
         last_upsample = (
-            math.ceil(image_size[0] / 4) if self.padding else math.ceil(image_size[0] / 4) - 8,
-            math.ceil(image_size[1] / 4) if self.padding else math.ceil(image_size[1] / 4) - 8,
+            math.ceil(image_size[0] / 4)
+            if self.padding
+            else math.ceil(image_size[0] / 4) - 8,
+            math.ceil(image_size[1] / 4)
+            if self.padding
+            else math.ceil(image_size[1] / 4) - 8,
         )
-        x = F.interpolate(x, size=(image_size[0] // 64 - 1, image_size[1] // 64 - 1), mode="bilinear")
+        x = F.interpolate(
+            x, size=(image_size[0] // 64 - 1, image_size[1] // 64 - 1), mode="bilinear"
+        )
         x = F.relu(self.deconv1(x))
         x = self.dropout1(x)
-        x = F.interpolate(x, size=(image_size[0] // 32, image_size[1] // 32), mode="bilinear")
+        x = F.interpolate(
+            x, size=(image_size[0] // 32, image_size[1] // 32), mode="bilinear"
+        )
         x = F.relu(self.deconv2(x))
         x = self.dropout2(x)
-        x = F.interpolate(x, size=(image_size[0] // 16 - 1, image_size[1] // 16 - 1), mode="bilinear")
+        x = F.interpolate(
+            x, size=(image_size[0] // 16 - 1, image_size[1] // 16 - 1), mode="bilinear"
+        )
         x = F.relu(self.deconv3(x))
         x = self.dropout3(x)
-        x = F.interpolate(x, size=(image_size[0] // 8, image_size[1] // 8), mode="bilinear")
+        x = F.interpolate(
+            x, size=(image_size[0] // 8, image_size[1] // 8), mode="bilinear"
+        )
         x = F.relu(self.deconv4(x))
         x = self.dropout4(x)
-        x = F.interpolate(x, size=(image_size[0] // 4 - 1, image_size[1] // 4 - 1), mode="bilinear")
+        x = F.interpolate(
+            x, size=(image_size[0] // 4 - 1, image_size[1] // 4 - 1), mode="bilinear"
+        )
         x = F.relu(self.deconv5(x))
         x = self.dropout5(x)
-        x = F.interpolate(x, size=(image_size[0] // 2 - 1, image_size[1] // 2 - 1), mode="bilinear")
+        x = F.interpolate(
+            x, size=(image_size[0] // 2 - 1, image_size[1] // 2 - 1), mode="bilinear"
+        )
         x = F.relu(self.deconv6(x))
         x = self.dropout6(x)
         x = F.interpolate(x, size=last_upsample, mode="bilinear")
@@ -125,7 +157,9 @@ class AutoEncoder(nn.Module):
         self.encoder = Encoder(in_channels)
         self.decoder = Decoder(out_channels, padding)
 
-    def forward(self, x: torch.Tensor, image_size: tuple[int, int] | torch.Size) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, image_size: tuple[int, int] | torch.Size
+    ) -> torch.Tensor:
         if x.ndim == 3:
             x = x.unsqueeze(0)
         x = self.encoder(x)
@@ -134,17 +168,43 @@ class AutoEncoder(nn.Module):
 
 @MODELS.register("efficientad.MediumBackbones")
 class MediumBackbones(nn.Module):
-    def __init__(self, teacher_out_channels: int = 384, padding: bool = False, in_channels: int = 6):
+    def __init__(
+        self,
+        teacher_out_channels: int = 384,
+        padding: bool = False,
+        in_channels: int = 6,
+    ):
         super().__init__()
-        self.teacher = MediumPatchDescriptionNetwork(out_channels=teacher_out_channels, padding=padding, in_channels=in_channels)
-        self.student = MediumPatchDescriptionNetwork(out_channels=teacher_out_channels * 2, padding=padding, in_channels=in_channels)
-        self.ae = AutoEncoder(out_channels=teacher_out_channels, padding=padding, in_channels=in_channels)
+        self.teacher = MediumPatchDescriptionNetwork(
+            out_channels=teacher_out_channels, padding=padding, in_channels=in_channels
+        )
+        self.student = MediumPatchDescriptionNetwork(
+            out_channels=teacher_out_channels * 2,
+            padding=padding,
+            in_channels=in_channels,
+        )
+        self.ae = AutoEncoder(
+            out_channels=teacher_out_channels, padding=padding, in_channels=in_channels
+        )
 
 
 @MODELS.register("efficientad.SmallBackbones")
 class SmallBackbones(nn.Module):
-    def __init__(self, teacher_out_channels: int = 384, padding: bool = False, in_channels: int = 6):
+    def __init__(
+        self,
+        teacher_out_channels: int = 384,
+        padding: bool = False,
+        in_channels: int = 6,
+    ):
         super().__init__()
-        self.teacher = SmallPatchDescriptionNetwork(out_channels=teacher_out_channels, padding=padding, in_channels=in_channels)
-        self.student = SmallPatchDescriptionNetwork(out_channels=teacher_out_channels * 2, padding=padding, in_channels=in_channels)
-        self.ae = AutoEncoder(out_channels=teacher_out_channels, padding=padding, in_channels=in_channels)
+        self.teacher = SmallPatchDescriptionNetwork(
+            out_channels=teacher_out_channels, padding=padding, in_channels=in_channels
+        )
+        self.student = SmallPatchDescriptionNetwork(
+            out_channels=teacher_out_channels * 2,
+            padding=padding,
+            in_channels=in_channels,
+        )
+        self.ae = AutoEncoder(
+            out_channels=teacher_out_channels, padding=padding, in_channels=in_channels
+        )

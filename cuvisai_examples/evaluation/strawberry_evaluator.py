@@ -1,5 +1,6 @@
 from cuvisai_examples.registry import EVALUATORS
 
+
 @EVALUATORS.register("StrawberryEvaluator")
 class StrawberryEvaluator:
     def __init__(self):

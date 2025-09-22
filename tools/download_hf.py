@@ -4,10 +4,12 @@ import sys
 from dotenv import load_dotenv
 from huggingface_hub import snapshot_download
 from omegaconf import OmegaConf
+
 try:
     from cuvisai_examples.configs import load_config  # provided by library
 except Exception:
     load_config = None
+
 
 def main():
     load_dotenv(override=True)
@@ -38,6 +40,7 @@ def main():
         token=token,
     )
     print(f"Downloaded {repo_id} to: {out.resolve()}")
+
 
 if __name__ == "__main__":
     main()
