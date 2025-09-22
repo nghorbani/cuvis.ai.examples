@@ -9,7 +9,9 @@ class IdentityModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.net = nn.Identity()
-        self._dummy = nn.Parameter(torch.zeros((), device=self.device if hasattr(self, "device") else None))
+        self._dummy = nn.Parameter(
+            torch.zeros((), device=self.device if hasattr(self, "device") else None)
+        )
 
     def forward(self, x):
         return self.net(x)

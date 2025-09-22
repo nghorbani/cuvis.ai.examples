@@ -3,12 +3,15 @@ import numpy as np
 from sklearn.metrics import roc_curve, auc
 from cuvisai_examples.registry import EVALUATORS
 
+
 @EVALUATORS.register("EfficientADEvaluator")
 class EfficientADEvaluator:
     def __init__(self, normalize: bool = True):
         self.normalize = normalize
 
-    def _flatten_binary(self, score_maps: List[np.ndarray], gt_masks: List[np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
+    def _flatten_binary(
+        self, score_maps: List[np.ndarray], gt_masks: List[np.ndarray]
+    ) -> Tuple[np.ndarray, np.ndarray]:
         ys, yt = [], []
         for s, g in zip(score_maps, gt_masks):
             if self.normalize:
@@ -21,8 +24,16 @@ class EfficientADEvaluator:
         return np.concatenate(ys), np.concatenate(yt)
 
     def evaluate(self, predictions: List[Dict[str, Any]]) -> Dict[str, Any]:
-        score_maps = [p["anomaly_map"] if isinstance(p["anomaly_map"], np.ndarray) else np.array(p["anomaly_map"]) for p in predictions]
-        gt_masks = [p["mask"] if isinstance(p["mask"], np.ndarray) else np.array(p["mask"]) for p in predictions]
+        score_maps = [
+            p["anomaly_map"]
+            if isinstance(p["anomaly_map"], np.ndarray)
+            else np.array(p["anomaly_map"])
+            for p in predictions
+        ]
+        gt_masks = [
+            p["mask"] if isinstance(p["mask"], np.ndarray) else np.array(p["mask"])
+            for p in predictions
+        ]
         y_scores, y_true = self._flatten_binary(score_maps, gt_masks)
         if len(np.unique(y_true)) < 2:
             return {"overall_auc": float("nan")}

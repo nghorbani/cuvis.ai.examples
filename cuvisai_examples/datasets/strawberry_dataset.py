@@ -52,12 +52,23 @@ class StrawberryDataset(Dataset):
                 if repo_id and token:
                     try:
                         from huggingface_hub import snapshot_download
-                        print(f"Dataset dir missing; downloading from HF: repo_id={repo_id} to {local_dir}")
-                        snapshot_download(repo_id=repo_id, repo_type="dataset", local_dir=str(local_dir), local_dir_use_symlinks=False, token=token)
+
+                        print(
+                            f"Dataset dir missing; downloading from HF: repo_id={repo_id} to {local_dir}"
+                        )
+                        snapshot_download(
+                            repo_id=repo_id,
+                            repo_type="dataset",
+                            local_dir=str(local_dir),
+                            local_dir_use_symlinks=False,
+                            token=token,
+                        )
                     except Exception as e:
                         print(f"HF download failed: {e}")
                 else:
-                    print("Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download.")
+                    print(
+                        "Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download."
+                    )
             else:
                 print(f"Dataset dir not found: {self.root_dir}")
 
@@ -87,7 +98,11 @@ class StrawberryDataset(Dataset):
 
         self.masks = {}
         for file_path in self.file_paths:
-            self.masks[file_path] = file_path.parent / "masks" / (file_path.stem + "_0000_Strawberry_swir_fasterRGB_mask.npy")
+            self.masks[file_path] = (
+                file_path.parent
+                / "masks"
+                / (file_path.stem + "_0000_Strawberry_swir_fasterRGB_mask.npy")
+            )
 
         self.mean = mean
         self.std = std
@@ -112,9 +127,20 @@ class StrawberryDataset(Dataset):
         if "cube" not in mesu.data:
             if self.proc is None:
                 self.proc = cuvis.ProcessingContext(sess)  # type: ignore
-                if self.white_path and self.dark_path and Path(self.white_path).exists() and Path(self.dark_path).exists():
-                    self.proc.set_reference(cuvis.SessionFile(self.white_path).get_measurement(0), cuvis.ReferenceType.White)  # type: ignore
-                    self.proc.set_reference(cuvis.SessionFile(self.dark_path).get_measurement(0), cuvis.ReferenceType.Dark)  # type: ignore
+                if (
+                    self.white_path
+                    and self.dark_path
+                    and Path(self.white_path).exists()
+                    and Path(self.dark_path).exists()
+                ):
+                    self.proc.set_reference(
+                        cuvis.SessionFile(self.white_path).get_measurement(0),
+                        cuvis.ReferenceType.White,
+                    )  # type: ignore
+                    self.proc.set_reference(
+                        cuvis.SessionFile(self.dark_path).get_measurement(0),
+                        cuvis.ReferenceType.Dark,
+                    )  # type: ignore
                     self.proc.processing_mode = cuvis.ProcessingMode.Reflectance  # type: ignore
             mesu = self.proc.apply(mesu)  # type: ignore
 
@@ -134,7 +160,11 @@ class StrawberryDataset(Dataset):
         mask_path = self.masks.get(file_path)
         if mask_path and os.path.exists(mask_path):
             mask_np = np.load(mask_path)
-            mask = torch.tensor(cv.resize(mask_np, (self.width, self.height), interpolation=cv.INTER_NEAREST))
+            mask = torch.tensor(
+                cv.resize(
+                    mask_np, (self.width, self.height), interpolation=cv.INTER_NEAREST
+                )
+            )
         else:
             mask = torch.zeros((self.height, self.width), dtype=torch.long)
 

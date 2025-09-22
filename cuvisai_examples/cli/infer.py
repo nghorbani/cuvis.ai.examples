@@ -1,11 +1,11 @@
-import os
 from dotenv import load_dotenv
-load_dotenv(override=True)
 
 import hydra
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from cuvisai_examples.registry import DATASETS, MODELS, RUNNERS, build_from_cfg
+
+load_dotenv(override=True)
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="infer")
