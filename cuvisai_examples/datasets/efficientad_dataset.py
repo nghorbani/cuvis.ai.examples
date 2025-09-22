@@ -1,6 +1,7 @@
 from typing import Optional, List
 import os
 from pathlib import Path
+import logging
 import torch
 from torch.utils.data import Dataset
 import torchvision
@@ -18,7 +19,6 @@ try:
 except Exception:
     cuvis = None
     ProcessingMode = None
-
 
 @DATASETS.register("EfficientADCuvisDataSet")
 class EfficientADCuvisDataSet(Dataset):
@@ -92,6 +92,14 @@ class EfficientADCuvisDataSet(Dataset):
                 for file_path in self.file_paths:
                     if "_ok_ok_" not in file_path:
                         self.gt[file_path] = file_path.replace(".cu3s", "_0_RGB_mask.png")
+
+        logging.getLogger(__name__).info(f"EfficientAD dataset init: mode={self.mode} path={self.path}")
+        logging.getLogger(__name__).info(f"Found {len(self.npz_paths)} NPZ files")
+        if not self.uses_npz:
+            logging.getLogger(__name__).info(f"Found {len(self.file_paths)} CU3S files; cuvis={'available' if cuvis is not None else 'missing'}")
+        logging.getLogger(__name__).info(f"ImageNet dir set: {self.imageNet_path is not None}; files={len(self.imgNet_files) if hasattr(self, 'imgNet_files') else 0}")
+        if self.normalize:
+            logging.getLogger(__name__).info(f"Normalization enabled; mean/std provided={self.mean is not None and self.std is not None}")
 
         self.transform = lambda x: x
         self.proc = None
