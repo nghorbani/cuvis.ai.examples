@@ -13,9 +13,14 @@ train:
     mean: [0.0267, 0.0267, 0.0267, 0.0267, 0.0267, 0.0267]
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
     obtain:
+      # For HF datasets (current default)
       hf:
         repo_id: nghorbani/Hyperspektral-Small
         local_dir: data/Hyperspektral-Small
+      # For manual downloads (example - uncomment and modify as needed) (important-comment)
+      # manual:
+      #   url: "https://www.dropbox.com/scl/fi/example/data.zip" (important-comment)
+      #   instructions: "Download and extract the dataset using: curl -L 'URL' -o data.zip && unzip -q data.zip -d ./data" (important-comment)
 
 val:
   type: "EfficientADCuvisDataSet"
@@ -32,9 +37,14 @@ val:
     mean: [0.0267, 0.0267, 0.0267, 0.0267, 0.0267, 0.0267]
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
     obtain:
+      # For HF datasets (current default)
       hf:
         repo_id: nghorbani/Hyperspektral-Small
         local_dir: data/Hyperspektral-Small
+      # For manual downloads (example - uncomment and modify as needed)
+      # manual:
+      #   url: "https://www.dropbox.com/scl/fi/example/data.zip"
+      #   instructions: "Download and extract the dataset using: curl -L 'URL' -o data.zip && unzip -q data.zip -d ./data"
 
 test:
   type: "EfficientADCuvisDataSet"
@@ -51,6 +61,11 @@ test:
     mean: [0.0267, 0.0267, 0.0267, 0.0267, 0.0267, 0.0267]
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
     obtain:
+      # For HF datasets (current default)
       hf:
         repo_id: nghorbani/Hyperspektral-Small
         local_dir: data/Hyperspektral-Small
+      # For manual downloads (example - uncomment and modify as needed)
+      # manual:
+      #   url: "https://www.dropbox.com/scl/fi/example/data.zip"
+      #   instructions: "Download and extract the dataset using: curl -L 'URL' -o data.zip && unzip -q data.zip -d ./data"

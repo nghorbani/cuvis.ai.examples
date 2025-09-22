@@ -66,10 +66,25 @@ class PerPixelAECuvisDataSet(Dataset):
                     logging.getLogger(__name__).warning(
                         "Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download."
                     )
-            else:
-                logging.getLogger(__name__).warning(
-                    f"Dataset dir not found: {self.path}"
+            elif obtain and isinstance(obtain, dict) and "manual" in obtain:
+                manual = obtain.get("manual") or {}
+                download_url = manual.get("url")
+                instructions = manual.get("instructions", "Please download the dataset manually")
+                logging.getLogger(__name__).error(
+                    f"Dataset not found at: {self.path}\n"
+                    f"{instructions}\n"
+                    f"Expected location: {os.path.abspath(self.path)}\n"
+                    f"After downloading, run this script once more."
+                    + (f"\nDownload URL: {download_url}" if download_url else "")
                 )
+                raise FileNotFoundError(f"Dataset directory not found: {self.path}")
+            else:
+                logging.getLogger(__name__).error(
+                    f"Dataset not found at: {self.path}\n"
+                    f"Please download the dataset to: {os.path.abspath(self.path)}\n"
+                    f"After downloading, run this script once more."
+                )
+                raise FileNotFoundError(f"Dataset directory not found: {self.path}")
 
         self.file_paths = [
             os.path.join(root, f)

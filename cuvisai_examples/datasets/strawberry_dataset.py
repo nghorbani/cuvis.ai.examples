@@ -69,8 +69,25 @@ class StrawberryDataset(Dataset):
                     print(
                         "Dataset dir missing and obtain.hf provided but repo_id or HF_TOKEN missing; skipping download."
                     )
+            elif obtain and isinstance(obtain, dict) and "manual" in obtain:
+                manual = obtain.get("manual") or {}
+                download_url = manual.get("url")
+                instructions = manual.get("instructions", "Please download the dataset manually")
+                print(
+                    f"Dataset not found at: {self.root_dir}\n"
+                    f"{instructions}\n"
+                    f"Expected location: {self.root_dir.resolve()}\n"
+                    f"After downloading, run this script once more."
+                    + (f"\nDownload URL: {download_url}" if download_url else "")
+                )
+                raise FileNotFoundError(f"Dataset directory not found: {self.root_dir}")
             else:
-                print(f"Dataset dir not found: {self.root_dir}")
+                print(
+                    f"Dataset not found at: {self.root_dir}\n"
+                    f"Please download the dataset to: {self.root_dir.resolve()}\n"
+                    f"After downloading, run this script once more."
+                )
+                raise FileNotFoundError(f"Dataset directory not found: {self.root_dir}")
 
         self.file_paths: List[Path] = []
         for path in self.root_dir.glob("*.cu3s"):
