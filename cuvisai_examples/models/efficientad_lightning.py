@@ -60,6 +60,11 @@ class EfficientADLightning(pl.LightningModule):
         
         if teacher_checkpoint:
             self._load_pretrain_teacher(teacher_checkpoint)
+        else:
+            self.teacher.eval()
+            for param in self.teacher.parameters():
+                param.requires_grad = False
+            logging.getLogger(__name__).info("Teacher frozen without checkpoint (random weights)")
 
         self.register_buffer("teacher_mean", torch.zeros(1, 384, 1, 1))
         self.register_buffer("teacher_std", torch.ones(1, 384, 1, 1))

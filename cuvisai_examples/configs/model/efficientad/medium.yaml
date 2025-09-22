@@ -2,7 +2,7 @@ type: efficientad.MediumLightning
 params:
   backbones_type: efficientad.MediumBackbones
   in_channels: 6
-  teacher_checkpoint: null  # Path to pretrained teacher weights (e.g., "best_teacher_6_channel.pth")
+  teacher_checkpoint: null  # REQUIRED: Path to pretrained teacher weights (e.g., "best_teacher_6_channel.pth")
   backbones_params:
     padding: true
   learning_rate: 0.0001
