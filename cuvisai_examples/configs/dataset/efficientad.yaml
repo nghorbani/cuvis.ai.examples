@@ -1,6 +1,7 @@
 train:
   type: "EfficientADCuvisDataSet"
   params:
+    variant: "tiny"
     dataset_dir: ./data/Hyperspektral-Small/bedding_dataset
     mode: "train"
     imagenet_dir: ./data/ImageNet_6_channel
@@ -12,14 +13,11 @@ train:
     channels: "ALL"
     mean: [0.0267, 0.0267, 0.0267, 0.0267, 0.0267, 0.0267]
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
-    obtain:
-      hf:
-        repo_id: nghorbani/Hyperspektral-Small
-        local_dir: data/Hyperspektral-Small
 
 val:
   type: "EfficientADCuvisDataSet"
   params:
+    variant: "tiny"
     dataset_dir: ./data/Hyperspektral-Small/bedding_dataset
     mode: "test"
     imagenet_dir: ./data/ImageNet_6_channel
@@ -31,14 +29,11 @@ val:
     channels: "ALL"
     mean: [0.0267, 0.0267, 0.0267, 0.0267, 0.0267, 0.0267]
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
-    obtain:
-      hf:
-        repo_id: nghorbani/Hyperspektral-Small
-        local_dir: data/Hyperspektral-Small
 
 test:
   type: "EfficientADCuvisDataSet"
   params:
+    variant: "tiny"
     dataset_dir: ./data/Hyperspektral-Small/bedding_dataset
     mode: "test"
     imagenet_dir: ./data/ImageNet_6_channel
@@ -50,7 +45,3 @@ test:
     channels: "ALL"
     mean: [0.0267, 0.0267, 0.0267, 0.0267, 0.0267, 0.0267]
     std:  [0.0137, 0.0137, 0.0137, 0.0137, 0.0137, 0.0137]
-    obtain:
-      hf:
-        repo_id: nghorbani/Hyperspektral-Small
-        local_dir: data/Hyperspektral-Small
