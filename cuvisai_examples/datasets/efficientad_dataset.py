@@ -21,13 +21,6 @@ except Exception:
 
 @DATASETS.register("EfficientADCuvisDataSet")
 class EfficientADCuvisDataSet(Dataset):
-    VARIANT_REPOS = {
-        "tiny": "nghorbani/HyperspectralTiny",
-        "small": "nghorbani/Hyperspektral-Small",
-        "medium": "nghorbani/HyperspectralMedium",
-        "large": "nghorbani/HyperspectralLarge",
-    }
-    
     def __init__(
         self,
         dataset_dir: str = "data/cubes",
@@ -41,19 +34,8 @@ class EfficientADCuvisDataSet(Dataset):
         max_img_shape: int = 1500,
         white_percentage: float = 0.55,
         channels: str = "ALL",
-        variant: Optional[str] = None,
         obtain: Optional[dict] = None,
     ):
-        if variant and variant in self.VARIANT_REPOS:
-            if not obtain:
-                obtain = {}
-            if "hf" not in obtain:
-                obtain["hf"] = {}
-            if "repo_id" not in obtain["hf"]:
-                obtain["hf"]["repo_id"] = self.VARIANT_REPOS[variant]
-            if "local_dir" not in obtain["hf"]:
-                obtain["hf"]["local_dir"] = f"data/{variant}_dataset"
-        
         self.dataset_dir = dataset_dir
         self.mode = mode
         self.imagenet_file_ending = imagenet_file_ending
@@ -65,7 +47,6 @@ class EfficientADCuvisDataSet(Dataset):
         self.normalize = normalize
         self.white_percentage = white_percentage
         self.channels = channels
-        self.variant = variant
         if not os.path.isdir(self.dataset_dir):
             if obtain and isinstance(obtain, dict) and "hf" in obtain:
                 hf = obtain.get("hf") or {}
@@ -149,7 +130,6 @@ class EfficientADCuvisDataSet(Dataset):
 
         logging.getLogger(__name__).info(
             f"EfficientAD dataset init: mode={self.mode} dir={os.path.abspath(self.dataset_dir)}"
-            + (f" variant={self.variant}" if self.variant else "")
         )
         logging.getLogger(__name__).info(f"Found {len(self.npz_paths)} NPZ files")
         if not self.uses_npz:
