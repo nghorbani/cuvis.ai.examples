@@ -184,6 +184,7 @@ class EfficientADLightning(pl.LightningModule):
         if "mask" in batch:
             tgt = (batch["mask"] > 0).to(torch.int64)
             pred = maps["anomaly_map"]
+            pred = F.interpolate(pred, size=tgt.shape[-2:], mode="bilinear", align_corners=False).squeeze(1)
             self._val_preds.append(pred.detach().flatten().cpu())
             self._val_tgts.append(tgt.detach().flatten().cpu())
 
