@@ -1,12 +1,14 @@
 import itertools
 import random
 import logging
+import sys
 import torch
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from torchmetrics.classification import AUROC, ROC, PrecisionRecallCurve, AveragePrecision, Accuracy
 from torchmetrics.segmentation import DiceScore, MeanIoU
 import torch.nn.functional as F
+from tqdm.auto import tqdm
 from cuvisai_examples.registry import MODELS
 
 def _reduce_tensor_elems(tensor: torch.Tensor, m: int = 2 ** 24) -> torch.Tensor:
@@ -125,7 +127,13 @@ class EfficientADLightning(pl.LightningModule):
         n = None
         s1 = None
         s2 = None
-        for b in dl:
+        total = None
+        try:
+            total = len(dl)  # may be NotImplemented for some loaders
+        except Exception:
+            total = None
+        bar = tqdm(dl, total=total, desc="Teacher stats", leave=True, position=1, disable=not sys.stderr.isatty())
+        for i, b in enumerate(bar):
             y = self.teacher(b["image"].to(self.device))
             if n is None:
                 c = y.shape[1]
@@ -135,6 +143,8 @@ class EfficientADLightning(pl.LightningModule):
             n += y[:, 0].numel()
             s1 += y.sum(dim=[0, 2, 3])
             s2 += (y ** 2).sum(dim=[0, 2, 3])
+            if i % 50 == 0:
+                bar.set_postfix_str(f"samples={int(n.item())}")
         mean = s1 / n
         var = s2 / n - mean ** 2
         std = torch.sqrt(torch.clamp(var, min=1e-6))
@@ -159,12 +169,21 @@ class EfficientADLightning(pl.LightningModule):
     def _compute_quantiles(self, dl: DataLoader) -> None:
         maps_st = []
         maps_ae = []
-        for batch in dl or []:
+        try:
+            total = len(dl)
+        except Exception:
+            total = None
+        bar = tqdm(dl or [], total=total, desc="Quantiles (good samples)", leave=True, position=2, disable=not sys.stderr.isatty())
+        for j, batch in enumerate(bar):
+            added = 0
             for img, label in zip(batch["image"], batch["label"], strict=True):
                 if label == 0:
                     res = self._maps(img.unsqueeze(0).to(self.device))
                     maps_st.append(res["map_st"])
                     maps_ae.append(res["map_ae"])
+                    added += 1
+            if j % 20 == 0:
+                bar.set_postfix_str(f"good_added={added}")
         if len(maps_st) > 0:
             ms = torch.cat(maps_st, dim=0).to(self.device)
             ma = torch.cat(maps_ae, dim=0).to(self.device)
