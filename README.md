@@ -38,6 +38,10 @@ Train a UNet to classify strawberries and find bruises on them.
 - Control verbosity via:
   - log_level=INFO|DEBUG
   - or logging.verbose=true (sets DEBUG)
+- Lightning progress bar remains enabled; after each epoch, one-line summaries are printed and persist:
+  - Train: train/loss, train/st, train/ae
+  - Val: val/auroc, val/ap
+
 - Example:
   - uv run cuvisai-train model=efficientad/medium dataset=efficientad_train_val trainer.max_epochs=1 trainer.accelerator=cpu logging.verbose=true
 - You will see:
