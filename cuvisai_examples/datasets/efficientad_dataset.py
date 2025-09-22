@@ -100,9 +100,14 @@ class EfficientADCuvisDataSet(Dataset):
         logging.getLogger(__name__).info(f"ImageNet dir set: {self.imageNet_path is not None}; files={len(self.imgNet_files) if hasattr(self, 'imgNet_files') else 0}")
         if self.normalize:
             logging.getLogger(__name__).info(f"Normalization enabled; mean/std provided={self.mean is not None and self.std is not None}")
+            if self.mean is None or self.std is None:
+                logging.getLogger(__name__).warning("Normalization requested but mean/std not provided; skipping normalization.")
+        if self.mode == "train" and not self.imgNet_files:
+            logging.getLogger(__name__).warning("No ImageNet files found; imgNet penalty images will be unavailable.")
 
         self.transform = lambda x: x
         self.proc = None
+        self._dbg = 0
 
     def __len__(self):
         return len(self.images)
@@ -153,6 +158,10 @@ class EfficientADCuvisDataSet(Dataset):
 
     def _load_imagenet(self) -> torch.Tensor:
         if self.imageNet_file_ending == ".npy":
+            if self._dbg < 3:
+                logging.getLogger(__name__).debug(f"EfficientAD item {idx}: npz cube shape pre-return={tuple(cube.shape)} channels_sel={self.channels}")
+                self._dbg += 1
+
             imgNet_img = np.load(random.choice(self.imgNet_files))
         else:
             imgNet_img = np.array(cv.imread(random.choice(self.imgNet_files)))
@@ -165,14 +174,26 @@ class EfficientADCuvisDataSet(Dataset):
 
     def __getitem__(self, idx: int):
         if self.uses_npz:
+                        if self._dbg < 3:
+                            logging.getLogger(__name__).debug(f"EfficientAD eval item {idx}: mask found for {npz_path} -> resized to {tuple(mask_out.shape)}")
+                            self._dbg += 1
+
             npz_path = self.npz_paths[idx]
             cube = self._load_cube_from_npz(npz_path)
+                        if self._dbg < 3:
+                            logging.getLogger(__name__).debug(f"EfficientAD eval item {idx}: NO mask for {npz_path}, returning zeros with shape={tuple(mask_out.shape)}")
+                            self._dbg += 1
+
             if self.mode == "train":
                 imgNet_img = self._load_imagenet() if self.imgNet_files else torch.zeros((3, cube.shape[-2], cube.shape[-1]), dtype=cube.dtype)
                 return self.transform({"image": cube, "imgNet_img": imgNet_img})
             else:
                 if "_ok_ok_" in npz_path:
                     return {"image": cube, "label": torch.tensor(0, dtype=torch.long), "mask": torch.zeros(cube.shape[-2:]), "defect": "good"}
+                if self._dbg < 3:
+                    logging.getLogger(__name__).debug(f"EfficientAD item {idx}: cu3s cube shape pre-return={tuple(cube.shape)} channels_sel={self.channels}")
+                    self._dbg += 1
+
                 else:
                     defect = Path(npz_path).parent.name
                     if hasattr(self, "gt") and npz_path in self.gt and os.path.exists(self.gt[npz_path]):
@@ -183,8 +204,16 @@ class EfficientADCuvisDataSet(Dataset):
                         mask_out = torch.zeros(cube.shape[-2:])
                     return {"image": cube, "label": torch.tensor(1, dtype=torch.long), "mask": mask_out, "defect": defect}
         else:
+                        if self._dbg < 3:
+                            logging.getLogger(__name__).debug(f"EfficientAD eval item {idx}: mask found for {file_path} -> resized to {tuple(mask_out.shape)}")
+                            self._dbg += 1
+
             file_path, index = self.images[idx]
             cube = self._load_cube(file_path, index)
+                        if self._dbg < 3:
+                            logging.getLogger(__name__).debug(f"EfficientAD eval item {idx}: NO mask for {file_path}, returning zeros with shape={tuple(mask_out.shape)}")
+                            self._dbg += 1
+
             if self.mode == "train":
                 imgNet_img = self._load_imagenet() if self.imgNet_files else torch.zeros_like(cube[:3])
                 return self.transform({"image": cube, "imgNet_img": imgNet_img})

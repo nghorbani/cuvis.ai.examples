@@ -9,6 +9,8 @@ defaults:
 work_dir: ${oc.env:WORK_DIR, ./work_dirs/exp}
 seed: 42
 log_level: INFO
+logging:
+  verbose: false
 
 trainer:
   max_epochs: 1
