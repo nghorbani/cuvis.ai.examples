@@ -188,6 +188,15 @@ class EfficientADLightning(pl.LightningModule):
             self._val_preds.append(pred.detach().flatten().cpu())
             self._val_tgts.append(tgt.detach().flatten().cpu())
 
+    def on_train_epoch_end(self):
+        try:
+            metrics = getattr(self.trainer, "callback_metrics", {})
+            keys = [k for k in metrics.keys() if isinstance(k, str) and k.startswith("train/")]
+            if keys:
+                msg = " | ".join(f"{k}={float(metrics[k]):.4f}" for k in sorted(keys))
+                logging.getLogger(__name__).info(f"Train epoch {self.current_epoch} summary: {msg}")
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Train epoch summary logging failed: {e}")
     def on_validation_epoch_end(self):
         if len(self._val_preds) == 0:
             logging.getLogger(__name__).info("Validation: no masks/predictions collected; skipping AUROC.")
