@@ -1,10 +1,35 @@
-type: PerPixelAECuvisDataSet
-params:
-  path: data/cubes
-  mode: train
-  max_img_shape: 1500
-  channels: ALL
-  white_percentage: 0.55
-  normalize: true
-  mean: null
-  std: null
+train:
+  type: PerPixelAECuvisDataSet
+  params:
+    dataset_dir: data/cubes
+    mode: train
+    max_img_shape: 1500
+    channels: ALL
+    white_percentage: 0.55
+    normalize: true
+    mean: null
+    std: null
+
+val:
+  type: PerPixelAECuvisDataSet
+  params:
+    dataset_dir: data/cubes
+    mode: test
+    max_img_shape: 1500
+    channels: ALL
+    white_percentage: 0.55
+    normalize: true
+    mean: null
+    std: null
+
+test:
+  type: PerPixelAECuvisDataSet
+  params:
+    dataset_dir: data/cubes
+    mode: test
+    max_img_shape: 1500
+    channels: ALL
+    white_percentage: 0.55
+    normalize: true
+    mean: null
+    std: null
