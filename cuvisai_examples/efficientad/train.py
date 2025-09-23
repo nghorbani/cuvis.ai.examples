@@ -406,63 +406,49 @@ class EfficientAD_lightning(L.LightningModule):
         self.model.mean_std.update(channel_mean_std)
 
     @torch.no_grad()
-    def teacher_channel_mean_std(
-        self, dataloader: DataLoader
-    ) -> dict[str, torch.Tensor]:
-        """Calculate channel-wise mean and std of teacher model activations.
-
-        Computes running mean and standard deviation of teacher model feature maps
-        over the full dataset.
-
-        Args:
-            dataloader (DataLoader): Dataloader for the dataset.
-
-        Returns:
-            dict[str, torch.Tensor]: Dictionary containing:
-                - ``mean``: Channel-wise means of shape ``(1, C, 1, 1)``
-                - ``std``: Channel-wise standard deviations of shape
-                  ``(1, C, 1, 1)``
-
-        Raises:
-            ValueError: If no data is provided (``n`` remains ``None``).
+    def teacher_channel_mean_std(self, dataloader: DataLoader) -> dict[str, torch.Tensor]:
         """
-        arrays_defined = False
-        n: torch.Tensor | None = None
-        chanel_sum: torch.Tensor | None = None
-        chanel_sum_sqr: torch.Tensor | None = None
+        Compute per-channel mean and std of teacher feature maps over the dataset.
+        Returns:
+            {"mean": (1, C, 1, 1), "std": (1, C, 1, 1)}  on self.device
+        """
+        was_training = self.model.teacher.training
+        self.model.teacher.eval()
 
-        for batch in tqdm(
-            dataloader,
-            desc="Calculate teacher channel mean & std",
-            position=0,
-            leave=True,
-        ):
-            y = self.model.teacher(batch["image"].to(self.device))
-            if not arrays_defined:
+        channel_sum = None     # (C,)
+        channel_sum_sqr = None   # (C,)
+        count = 0              # scalar
+
+        for batch in tqdm(dataloader, desc="Calculate teacher channel mean & std", position=0, leave=True):
+            imgs = batch["image"].to(self.device, non_blocking=True)
+            y = self.model.teacher(imgs)            # (B, C, H, W)
+            y = y.float()                           # ensure fp32 for stable squares
+
+            # initialize accumulators
+            if channel_sum is None:
                 _, num_channels, _, _ = y.shape
-                n = torch.zeros((num_channels,), dtype=torch.int64, device=y.device)
-                chanel_sum = torch.zeros(
-                    (num_channels,), dtype=torch.float32, device=y.device
-                )
-                chanel_sum_sqr = torch.zeros(
-                    (num_channels,), dtype=torch.float32, device=y.device
-                )
-                arrays_defined = True
+                channel_sum = torch.zeros(num_channels, dtype=torch.float64, device=y.device)
+                channel_sum_sqr = torch.zeros(num_channels, dtype=torch.float64, device=y.device)
 
-            n += y[:, 0].numel()
-            chanel_sum += torch.sum(y, dim=[0, 2, 3])
-            chanel_sum_sqr += torch.sum(y**2, dim=[0, 2, 3])
+            # per-batch reductions
+            channel_sum   += y.sum(dim=(0, 2, 3)).to(torch.float64)
+            channel_sum_sqr += (y * y).sum(dim=(0, 2, 3)).to(torch.float64)
+            count         += y.shape[0] * y.shape[2] * y.shape[3]
 
-        if n is None:
-            msg = "The value of 'n' cannot be None."
-            raise ValueError(msg)
+        if was_training:
+            self.model.teacher.train()
 
-        channel_mean = chanel_sum / n
+        if count == 0:
+            raise ValueError("Empty dataloader: no images to compute statistics.")
 
-        channel_std = (torch.sqrt((chanel_sum_sqr / n) - (channel_mean**2))).float()[
-            None, :, None, None
-        ]
-        channel_mean = channel_mean.float()[None, :, None, None]
+        # mean and std per channel
+        channel_mean = (channel_sum / count).to(torch.float32)                 # (C,)
+        channel_var  = (channel_sum_sqr / count - channel_mean.double()**2).clamp_min(1e-12)
+        channel_std  = channel_var.sqrt().to(torch.float32)                    # (C,)
+
+        # reshape to (1, C, 1, 1)
+        channel_mean = channel_mean[None, :, None, None]
+        channel_std  = channel_std[None,  :, None, None]
 
         return {"mean": channel_mean, "std": channel_std}
 

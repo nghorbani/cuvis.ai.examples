@@ -3,4 +3,4 @@
 cuvisai_examples.egg-info/*
 data/
 .env
-workdir/
+workdir*/
