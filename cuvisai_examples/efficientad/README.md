@@ -65,7 +65,7 @@ After downloading the sample dataset and ImageNet dataset and extracting them in
 Now the train.py script can be run.
 
 ```
-uv run EfficientAD/train.py -c ./example_train_config.yaml
+uv run efficientad-train -c ./cuvisai_examples/efficientad/example_train_config.yaml
 ```
 
 The `example_train_config.yaml` has every parameter and path in it for the model and dataloader to work.

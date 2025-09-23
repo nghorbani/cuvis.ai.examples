@@ -60,7 +60,10 @@ class EfficientADCuvisDataset(Dataset):
             logger.warning(
                 f"max_data_load is set, so only a subset {max_data_load} of the dataset files {len(self.file_paths)} will be used!"
             )
-            self.file_paths = self.file_paths[:max_data_load]
+            if self.mode == "train":
+                self.file_paths = self.file_paths[:max_data_load] 
+            else:
+                self.file_paths = [f for f in self.file_paths if "_ok_ok_" in f][:max_data_load] # this is to include non defect samples for debugging
 
         self.in_channels = in_channels
         self.images = [
@@ -70,7 +73,7 @@ class EfficientADCuvisDataset(Dataset):
         ]
 
         if imagenet_dir is not None:
-            self.imgNet_files = [
+            self.imgnet_files = [
                 os.path.join(root, file)
                 for root, dirs, files in os.walk(imagenet_dir)
                 for file in files
@@ -79,19 +82,19 @@ class EfficientADCuvisDataset(Dataset):
             ]
         if max_data_load > 0:
             logger.warning(
-                f"max_data_load is set, so only a subset {max_data_load} of the ImageNet files {len(self.imgNet_files)} will be used!"
+                f"max_data_load is set, so only a subset {max_data_load} of the ImageNet files {len(self.imgnet_files)} will be used!"
             )
-            self.imgNet_files = self.imgNet_files[:max_data_load]
+            self.imgnet_files = self.imgnet_files[:max_data_load]
 
         logger.info(
-            f"Found {len(self.images)} {mode} images and {len(self.imgNet_files)} ImageNet images"
+            f"Found {len(self.images)} {mode} images and {len(self.imgnet_files)} ImageNet images"
         )
         
         if mode == "test":
             self.gt = {}
             for file_path in self.file_paths:
-                if "_ok_ok_" not in file_path:
-                    self.gt[file_path] = file_path.replace(".npz", "_0_RGB_mask.png")
+                if "_ok_ok_" in file_path: continue # no GT for good parts
+                self.gt[file_path] = file_path.replace(".npz", "_0_RGB_mask.png")
 
         self.transform = v2.Compose(
             [
@@ -166,9 +169,9 @@ class EfficientADCuvisDataset(Dataset):
             cube = cube[3:, :, :]
         if self.mode == "train":
             if self.imagenet_file_ending == ".npy":
-                imgnet_img = np.load(random.choice(self.imgNet_files))
+                imgnet_img = np.load(random.choice(self.imgnet_files))
             else:
-                imgnet_img = np.array(cv.imread(random.choice(self.imgNet_files)))
+                imgnet_img = np.array(cv.imread(random.choice(self.imgnet_files)))
             imgnet_img = np.transpose(
                 imgnet_img, (2, 0, 1)
             )  # transpose from H x W x C to C x H x W for torch

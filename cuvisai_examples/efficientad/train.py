@@ -23,7 +23,7 @@ import yaml
 
 from cuvisai_examples.efficientad.data import EfficientADCuvisDataset
 from cuvisai_examples.efficientad.model import EfficientAdModel
-
+from loguru import logger
 
 def reduce_tensor_elems(tensor: torch.Tensor, m: int = 2**24) -> torch.Tensor:
     """Reduce tensor elements.
@@ -140,6 +140,8 @@ class EfficientAD_lightning(L.LightningModule):
         del args, kwargs  # These variables are not used.
 
         res = self.model(batch["image"], return_all_maps=True)
+
+
         amap = res["anomaly_map"].detach().squeeze(0)
         map_st = res["map_st"]
         map_ae = res["map_ae"]
@@ -160,6 +162,9 @@ class EfficientAD_lightning(L.LightningModule):
         # if     INTACT        or      DEFECT       and    MASK EXISTS
         if (label.item() == 0) or (label.item() == 1 and gt_mask.max().item() > 0):
             self.has_masks = True
+            logger.info(f"Tesnsor shape gt_mask: {gt_mask.shape}, amap: {amap.shape}")
+
+            import ipdb; ipdb.set_trace()
             self.dice_bg.update(amap > 0.5, gt_mask)
             self.dice1.update(amap > 0.1, gt_mask)
             self.dice2.update(amap > 0.2, gt_mask)
@@ -317,7 +322,7 @@ class EfficientAD_lightning(L.LightningModule):
             leave=False,
         ):
             for img, label in zip(batch["image"], batch["label"], strict=True):
-                if label == 0:  # only use good images of validation set!
+                if label == 0:  # only use good images of validation set! 
                     output = self.model(
                         img.to(self.device), normalize=False, return_all_maps=True
                     )
@@ -353,7 +358,7 @@ class EfficientAD_lightning(L.LightningModule):
         Returns:
             tuple[torch.Tensor, torch.Tensor]: Two scalars - the 90% and the 99.5% quantile.
         """
-        
+        assert len(maps) > 0, "The list of maps must not be empty."
         maps_flat = reduce_tensor_elems(torch.cat(maps))
         qa = torch.quantile(maps_flat, q=0.9).to(self.device)
         qb = torch.quantile(maps_flat, q=0.995).to(self.device)
@@ -525,7 +530,7 @@ def train(config):
     trainer = L.Trainer(
         logger=logger,
         max_steps=config["max_steps"],
-        benchmark=True,
+        benchmark=False if enable_debug else True,
         precision="16-mixed",
         gradient_clip_val=0.5,
         callbacks=[checkpoint_callback],

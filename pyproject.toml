@@ -25,6 +25,7 @@ dependencies = [
   "ruff>=0.13.1",
   "fire>=0.7.1",
   "loguru>=0.7.3",
+  "ipdb>=0.13.13",
 ]
 
 [project.scripts]
