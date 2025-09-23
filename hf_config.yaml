@@ -1,0 +1,3 @@
+efficientad:
+  data: nghorbani/Hyperspektral-Small
+  model: nghorbani/efficientad-hyperspectral
