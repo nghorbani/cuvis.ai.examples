@@ -14,7 +14,7 @@ def main(cfg: DictConfig):
     if "checkpoint" in cfg and cfg.checkpoint:
         if hasattr(model, "load_from_checkpoint"):
             model = model.load_from_checkpoint(cfg.checkpoint)
-    ds = build_from_cfg(cfg.dataset, DATASETS)
+    ds = build_from_cfg(cfg.test_dataset, DATASETS)
     loader = DataLoader(
         ds, batch_size=cfg.dataloader.batch_size, num_workers=cfg.dataloader.num_workers
     )

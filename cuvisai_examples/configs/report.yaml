@@ -4,10 +4,10 @@ defaults:
   - reporting: efficientad
 
 inputs:
-  preds_dir: ./work_dirs/exp/preds
-  gts_dir: ./work_dirs/exp/gts
+  preds_dir: ${work_dir}/preds
+  gts_dir: ${work_dir}/gts
 
 outputs:
-  out_dir: ./work_dirs/exp/reports
+  out_dir: ${work_dir}/reports
 
 work_dir: ${oc.env:WORK_DIR, ./work_dirs/exp}

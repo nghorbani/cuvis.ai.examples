@@ -1,7 +1,7 @@
 type: "LightningRunner"
 params:
   logger: "tensorboard"
-  save_dir: "./work_dirs"
+  save_dir: "${work_dir}"
   max_epochs: ${trainer.max_epochs}
   accelerator: ${trainer.accelerator}
   checkpoint:
@@ -11,4 +11,4 @@ params:
     save_last: true
     verbose: true
     filename: "best-{epoch:02d}-{val/auroc:.4f}"
-    dirpath: "./work_dirs/checkpoints"
+    dirpath: "${work_dir}/checkpoints"

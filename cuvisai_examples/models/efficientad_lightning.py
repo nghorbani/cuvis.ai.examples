@@ -27,7 +27,8 @@ class EfficientADLightning(pl.LightningModule):
         in_channels: int = 6,
         learning_rate: float = 1e-4,
         weight_decay: float = 1e-5,
-        teacher_checkpoint: str | None = None,
+        teacher_checkpoint_path: str | None = None,
+        teacher_model_obtain: dict | None = None,
         use_imgNet_penalty: bool = False,
         loss: dict | None = None,
         preprocessing: dict | None = None,
@@ -42,6 +43,7 @@ class EfficientADLightning(pl.LightningModule):
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.use_imgNet_penalty = use_imgNet_penalty
+        self.teacher_model_obtain = teacher_model_obtain
 
         loss = loss or {}
         self.st_weight = float(loss.get("st_weight", 1.0))
@@ -58,13 +60,11 @@ class EfficientADLightning(pl.LightningModule):
         self.teacher = self.backbones.teacher
         self.ae = self.backbones.ae
         
-        if teacher_checkpoint:
-            self._load_pretrain_teacher(teacher_checkpoint)
+        if teacher_checkpoint_path:
+            teacher_checkpoint_path = self._ensure_teacher_checkpoint(teacher_checkpoint_path)
+            self._load_pretrain_teacher(teacher_checkpoint_path)
         else:
-            self.teacher.eval()
-            for param in self.teacher.parameters():
-                param.requires_grad = False
-            logging.getLogger(__name__).info("Teacher frozen without checkpoint (random weights)")
+            raise ValueError("teacher_checkpoint_path is required but was None. Please provide a valid checkpoint path.")
 
         self.register_buffer("teacher_mean", torch.zeros(1, 384, 1, 1))
         self.register_buffer("teacher_std", torch.ones(1, 384, 1, 1))
@@ -323,6 +323,49 @@ class EfficientADLightning(pl.LightningModule):
             logging.getLogger(__name__).warning(
                 f"Validation metrics failed: {e}; logged zeros."
             )
+
+    def _ensure_teacher_checkpoint(self, checkpoint_path: str) -> str:
+        """Ensure teacher checkpoint exists, download from HF if needed."""
+        import os
+        
+        if os.path.exists(checkpoint_path):
+            return checkpoint_path
+            
+        teacher_obtain = getattr(self, 'teacher_model_obtain', None)
+        if not teacher_obtain or 'hf' not in teacher_obtain:
+            raise FileNotFoundError(f"Teacher checkpoint not found at {checkpoint_path} and no HF fallback configured")
+            
+        hf_config = teacher_obtain['hf']
+        repo_id = hf_config['repo_id']
+        local_dir = hf_config['local_dir']
+        filename = hf_config.get('filename', 'best_teacher_6_channel.pth')
+        
+        logging.getLogger(__name__).info(f"Teacher checkpoint missing; downloading from HF: {repo_id}")
+        
+        try:
+            from huggingface_hub import hf_hub_download
+            import os
+            
+            token = os.environ.get("HF_TOKEN")
+            os.makedirs(local_dir, exist_ok=True)
+            
+            downloaded_path = hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                local_dir=local_dir,
+                token=token
+            )
+            
+            expected_path = os.path.join(local_dir, filename)
+            if downloaded_path != expected_path:
+                import shutil
+                shutil.move(downloaded_path, expected_path)
+                
+            logging.getLogger(__name__).info(f"Teacher checkpoint downloaded to {expected_path}")
+            return expected_path
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to download teacher checkpoint from HF: {e}")
 
     def _load_pretrain_teacher(self, checkpoint_path: str) -> None:
         """Load pretrained teacher weights and freeze the teacher model."""
