@@ -1,7 +1,7 @@
 name: Testrun # name of the training run, will be used in saving and logging
 
 ### DATASETS ###
-Datasets:
+datasets:
   train:
     root: ../data/bedding_dataset/exported/train
   eval:

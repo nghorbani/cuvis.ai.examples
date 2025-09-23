@@ -22,8 +22,7 @@ Notes on what the validation images show can be found in the ``dataset_notes.md`
 ## Model
 
 We chose to go with the [EfficientAD](https://arxiv.org/pdf/2303.14535v3) model since it is a very fast and highly capable 
-state-of-the-art
-model in anomaly detection.
+state-of-the-art model in anomaly detection.
 
 As a base to build our implementation on, we used the EfficientAD code
 of [Anomlaib](https://github.com/openvinotoolkit/anomalib). In order to make it work with more than three channels, the
@@ -37,6 +36,18 @@ found [here](https://s3.amazonaws.com/fast-ai-imageclas/imagenette2.tgz). This d
 in order to be used in our training loop. We did this
 by duplicating the
 three RGB channels to get a six-channel image.
+
+## Downloading Data and Models
+This project includes a tool to download datasets and models from Hugging Face for the examples.
+
+1. Ensure you have a Hugging Face token with read permissions for the required repositories.
+2. Set the `HF_TOKEN` in your `.env` file (next to `.env.example` as a reference).
+3. Install the project dependencies: `uv pip install -e .` (or `uv sync` if using lockfile).
+
+To download data and models for a specific example:
+```
+uv run get-data efficientad --output_dir ./data
+```
 
 ## Prerequisite
 

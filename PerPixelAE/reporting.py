@@ -11,16 +11,17 @@ import tqdm
 from torch.utils.data.dataloader import DataLoader
 from pathlib import Path
 import json
-import cv2 as cv
 import glob
-from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import auc
 from collections import defaultdict
-from PerPixelAEModels import HybridLoss, CosSpectralAngleLoss, Autoencoder, AutoencoderSmall, create_skorch_model
+from PerPixelAEModels import (
+    create_skorch_model,
+)
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", '--config', type=str, required=True)
+    parser.add_argument("-c", "--config", type=str, required=True)
     args = parser.parse_args()
     return args
 
@@ -34,28 +35,37 @@ def parse_args(args):
 class Report:
     """
     Class to create a report for a given dataset folder
-    
+
     Args:
         config(dict): parsed yaml configuration.
         model(torch.model): model to use to infer the data.
         reporting_root_folder(pathlib.Path): root folder where reportings should be saved
     """
 
-    def __init__(self, config: dict, model: torch.nn.Module, reporting_root_folder: pathlib.Path):
+    def __init__(
+        self, config: dict, model: torch.nn.Module, reporting_root_folder: pathlib.Path
+    ):
         self.config = config
         self.model = model
-        self.mean = np.array(config['means'])
-        self.std = np.array(config['stds'])
-        self.plot_thresholds = config['plot_thresholds']
+        self.mean = np.array(config["means"])
+        self.std = np.array(config["stds"])
+        self.plot_thresholds = config["plot_thresholds"]
         self.reporting_root_folder = reporting_root_folder
         self.name = config["name"]
         self.reporting_run_folder = reporting_root_folder / self.name
-        self.create_images = config['create_images'] if 'create_images' in config else True
-        self.create_roc = config['create_roc']
-        self.annotations = json.load(open(config["annotations"])) if config["annotations"] != "" else None
+        self.create_images = (
+            config["create_images"] if "create_images" in config else True
+        )
+        self.create_roc = config["create_roc"]
+        self.annotations = (
+            json.load(open(config["annotations"]))
+            if config["annotations"] != ""
+            else None
+        )
 
-
-    def plot_pixel_level_roc(self, anomaly_score_maps, groundtruth_masks, normalize=True):
+    def plot_pixel_level_roc(
+        self, anomaly_score_maps, groundtruth_masks, normalize=True
+    ):
         """
         Plot a pixel-level ROC curve and compute the overall AUC.
 
@@ -91,15 +101,19 @@ class Report:
 
         ValueError
             If the binary ground truth contains only one class (all 0s or all 1s), making ROC computation invalid.
-        """        
-        assert len(anomaly_score_maps) == len(groundtruth_masks), "Mismatch in number of images"
+        """
+        assert len(anomaly_score_maps) == len(groundtruth_masks), (
+            "Mismatch in number of images"
+        )
         # In this scenario, convert pixels to binary values
         groundtruth_masks = groundtruth_masks > 0
         y_scores = []
         y_true = []
 
         for score_map, gt_mask in zip(anomaly_score_maps, groundtruth_masks):
-            assert score_map.shape == gt_mask.shape, "Shape mismatch between score and groundtruth"
+            assert score_map.shape == gt_mask.shape, (
+                "Shape mismatch between score and groundtruth"
+            )
 
             if normalize:
                 score_min, score_max = score_map.min(), score_map.max()
@@ -112,7 +126,9 @@ class Report:
         y_true = np.concatenate(y_true)
 
         if len(np.unique(y_true)) < 2:
-            raise ValueError("ROC is undefined. Ground truth must have both 0 and 1 values.")
+            raise ValueError(
+                "ROC is undefined. Ground truth must have both 0 and 1 values."
+            )
 
         fpr, tpr, _ = roc_curve(y_true, y_scores)
         roc_auc = auc(fpr, tpr)
@@ -124,18 +140,24 @@ class Report:
         plt.xlabel("False Positive Rate")
         plt.ylabel("True Positive Rate")
         plt.title("Pixel-Level ROC Curve")
-        plt.legend(loc='lower right')
+        plt.legend(loc="lower right")
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'{self.reporting_run_folder}/AUROC.png', dpi=300, bbox_inches="tight")
+        plt.savefig(
+            f"{self.reporting_run_folder}/AUROC.png", dpi=300, bbox_inches="tight"
+        )
         plt.close()
         return fpr, tpr, roc_auc
 
-    def plot_per_class_pixel_roc(self, anomaly_score_maps, groundtruth_masks, normalize=True, class_map=None):
+    def plot_per_class_pixel_roc(
+        self, anomaly_score_maps, groundtruth_masks, normalize=True, class_map=None
+    ):
         """
         Optimized memory-efficient version of per-class pixel-level ROC and AUC computation.
         """
-        assert len(anomaly_score_maps) == len(groundtruth_masks), "Mismatch in number of images"
+        assert len(anomaly_score_maps) == len(groundtruth_masks), (
+            "Mismatch in number of images"
+        )
 
         inverted_class_map = {v: k for k, v in class_map.items()} if class_map else {}
 
@@ -158,11 +180,11 @@ class Report:
                 if cls == 0:
                     continue  # skip background
                 present_classes.add(cls)
-                mask = (gt_mask == cls)
+                mask = gt_mask == cls
                 class_scores[cls].append(score_map[mask])
                 class_truths[cls].append(np.ones(np.count_nonzero(mask)))
                 # Add negative samples from other classes
-                neg_mask = (gt_mask == 0)
+                neg_mask = gt_mask == 0
                 class_scores[cls].append(score_map[neg_mask])
                 class_truths[cls].append(np.zeros(np.count_nonzero(neg_mask)))
 
@@ -190,16 +212,19 @@ class Report:
         plt.xlabel("False Positive Rate")
         plt.ylabel("True Positive Rate")
         plt.title("Per-Class Pixel-Level ROC Curve")
-        plt.legend(loc='lower right')
+        plt.legend(loc="lower right")
         plt.grid(True)
         plt.tight_layout()
 
         os.makedirs(self.reporting_run_folder, exist_ok=True)
-        plt.savefig(f'{self.reporting_run_folder}/AUROC_Class.png', dpi=300, bbox_inches="tight")
+        plt.savefig(
+            f"{self.reporting_run_folder}/AUROC_Class.png", dpi=300, bbox_inches="tight"
+        )
         plt.close()
 
-        return {inverted_class_map.get(k, f"Class {k}"): float(v) for k, v in aucs.items()}
-
+        return {
+            inverted_class_map.get(k, f"Class {k}"): float(v) for k, v in aucs.items()
+        }
 
     def generate_report(self):
         """
@@ -216,35 +241,45 @@ class Report:
         all_labels = []
         all_truths = []
         all_scores = []
-        for dataset_path in config['datasets']:
+        for dataset_path in config["datasets"]:
             data_path = Path(dataset_path)
-            cubes = glob.glob(str(data_path/ "*" / "*.cu3s"))
+            cubes = glob.glob(str(data_path / "*" / "*.cu3s"))
             cube_names = [Path(image).name for image in cubes]
             dataset_name = data_path.name
 
             # create dataset and infer the cubes
-            dataset = PerPixelAECuvisDataSet(os.path.realpath(config["datasets"][0]),
-                                        mode="test",
-                                        mean=config["means"],
-                                        std=config["stds"],
-                                        normalize=config["normalize"],
-                                        max_img_shape=config["max_img_shape"],
-                                        white_percentage=config["white_percentage"],
-                                        channels=config["channels"])
-            test_loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
+            dataset = PerPixelAECuvisDataSet(
+                os.path.realpath(config["datasets"][0]),
+                mode="test",
+                mean=config["means"],
+                std=config["stds"],
+                normalize=config["normalize"],
+                max_img_shape=config["max_img_shape"],
+                white_percentage=config["white_percentage"],
+                channels=config["channels"],
+            )
+            test_loader = DataLoader(
+                dataset, batch_size=1, shuffle=False, num_workers=0
+            )
             pred = []
             for item in tqdm.tqdm(test_loader):
                 try:
                     res = model.predict(item["image"])
                     # Calculate error maps here
                     cube_shape = item["dims"]
-                    anomaly_map = np.linalg.norm(res.reshape(cube_shape) - item["image"].numpy().reshape(cube_shape), axis=0)
-                    pred.append({
-                        "anomaly_map": anomaly_map,
-                        "label": item["label"],
-                        "mask": item["mask"],
-                        "defect": item["defect"]
-                    })
+                    anomaly_map = np.linalg.norm(
+                        res.reshape(cube_shape)
+                        - item["image"].numpy().reshape(cube_shape),
+                        axis=0,
+                    )
+                    pred.append(
+                        {
+                            "anomaly_map": anomaly_map,
+                            "label": item["label"],
+                            "mask": item["mask"],
+                            "defect": item["defect"],
+                        }
+                    )
                 except Exception as e:
                     print(e)
             max_pred = 0
@@ -253,7 +288,8 @@ class Report:
             for p in pred:
                 # Labels are the binary anomalous or not
                 labels.extend(p["label"])
-                if p["label"] is not np.nan: all_labels.extend(p["label"])
+                if p["label"] is not np.nan:
+                    all_labels.extend(p["label"])
                 # anomaly map is the numerical value of reconstruction errors generated by the network
                 score = np.max(p["anomaly_map"])
                 scores.append(score)
@@ -263,22 +299,38 @@ class Report:
                 if np.max(p["anomaly_map"]) > max_pred:
                     max_pred = np.max(p["anomaly_map"])
             if self.create_images:
-                for j, batch in enumerate(tqdm.tqdm(test_loader, desc=f"creating images")):
+                for j, batch in enumerate(
+                    tqdm.tqdm(test_loader, desc="creating images")
+                ):
                     rel_path = Path(cubes[j]).relative_to(dataset_path)
-                    target_folder = self.reporting_run_folder / dataset_name / rel_path.parent
+                    target_folder = (
+                        self.reporting_run_folder / dataset_name / rel_path.parent
+                    )
                     if not target_folder.is_dir():
                         target_folder.mkdir(parents=True, exist_ok=True)
-                    inference_image, _ = self.create_inference_png(batch, pred[j]['anomaly_map'].squeeze().detach().cpu().numpy(), labels[j], scores[j], cube_names[j])
+                    inference_image, _ = self.create_inference_png(
+                        batch,
+                        pred[j]["anomaly_map"].squeeze().detach().cpu().numpy(),
+                        labels[j],
+                        scores[j],
+                        cube_names[j],
+                    )
                     inference_image.savefig(target_folder / (cube_names[j] + ".png"))
                     plt.close(inference_image)
         if self.create_roc:
-            fpr, tpr, roc_auc = self.plot_pixel_level_roc(np.array(all_scores), np.array(all_truths))
-            class_aucs = self.plot_per_class_pixel_roc(np.array(all_scores).astype(np.float32), np.array(all_truths).astype(np.float32), class_map=self.annotations)
+            fpr, tpr, roc_auc = self.plot_pixel_level_roc(
+                np.array(all_scores), np.array(all_truths)
+            )
+            class_aucs = self.plot_per_class_pixel_roc(
+                np.array(all_scores).astype(np.float32),
+                np.array(all_truths).astype(np.float32),
+                class_map=self.annotations,
+            )
             metrics[dataset_name] = {
-                'overall_auc': float(roc_auc),
-                'per_class_auc': class_aucs
+                "overall_auc": float(roc_auc),
+                "per_class_auc": class_aucs,
             }
-        
+
         with open(self.reporting_run_folder / "metrics.yaml", "w") as f:
             yaml.dump(metrics, f)
 
@@ -294,12 +346,14 @@ class Report:
         """
         nrows = 2 + len(self.plot_thresholds)
         fig_height = 6 + len(self.plot_thresholds)
-        fig, ax = plt.subplots(nrows, 2, tight_layout=True, dpi=600, figsize=(10, fig_height))
+        fig, ax = plt.subplots(
+            nrows, 2, tight_layout=True, dpi=600, figsize=(10, fig_height)
+        )
         a_map = pred
         a_map = a_map + abs(a_map.min())
 
         # split image in RGB and SWIR, or double the first channels if it is a SWIR or RGB only model
-        img = batch['image'].squeeze().detach().cpu().permute(1, 2, 0).numpy()
+        img = batch["image"].squeeze().detach().cpu().permute(1, 2, 0).numpy()
         if img.shape[2] > 3:
             rgb = img[:, :, :3]
             rgb = rgb[:, :, [2, 1, 0]]
@@ -328,10 +382,10 @@ class Report:
 
         ax[0][0].imshow((rgb * 255).astype(np.uint8), vmax=255, vmin=0)
         ax[0][1].imshow((ir * 255).astype(np.uint8), vmax=255, vmin=0)
-        ax[0][0].set_title('RGB')
-        ax[0][1].set_title('IR')
+        ax[0][0].set_title("RGB")
+        ax[0][1].set_title("IR")
         ax[1][0].imshow((a_map * 255).astype(np.uint8), vmax=255, vmin=0)
-        ax[1][0].set_title('anomaly_map')
+        ax[1][0].set_title("anomaly_map")
         if self.config["overlay"] == "RGB":
             overlay = rgb.copy()
         else:
@@ -339,27 +393,39 @@ class Report:
         mask = a_map > np.array(self.plot_thresholds).min()
         overlay[mask, 1] = a_map[mask]
         ax[1][1].imshow((overlay * 255).astype(np.uint8), vmax=255, vmin=0)
-        ax[1][1].set_title('RGB overlay')
+        ax[1][1].set_title("RGB overlay")
 
         # create threshold images and threshold overlays
         for i, threshold in enumerate(self.plot_thresholds):
             a_map_threshold = a_map.copy()
             a_map_threshold[a_map_threshold < threshold] = 0
             a_map_threshold[a_map_threshold >= threshold] = 1
-            ax[2 + i][0].set_title(f'anomaly_map_threshold: {threshold}')
+            ax[2 + i][0].set_title(f"anomaly_map_threshold: {threshold}")
             if self.config["overlay"] == "RGB":
                 overlay = rgb.copy()
             else:
                 overlay = ir.copy()
             overlay[a_map_threshold == 1] = [1, 0, 0]
-            ax[2 + i][0].imshow((a_map_threshold * 255).astype(np.uint8), vmax=255, vmin=0)
+            ax[2 + i][0].imshow(
+                (a_map_threshold * 255).astype(np.uint8), vmax=255, vmin=0
+            )
             ax[2 + i][1].imshow((overlay * 255).astype(np.uint8), vmax=255, vmin=0)
-            ax[2 + i][1].set_title('RGB overlay with threshold')
+            ax[2 + i][1].set_title("RGB overlay with threshold")
 
         fig.suptitle(image_name)
         return fig, ax
 
-    def plot_curve(self, x, y, label, title, x_label="", y_label="", color="navy", legend_position="lower right"):
+    def plot_curve(
+        self,
+        x,
+        y,
+        label,
+        title,
+        x_label="",
+        y_label="",
+        color="navy",
+        legend_position="lower right",
+    ):
         """
         creates a pyplot
         :param x: X-axis
@@ -372,7 +438,7 @@ class Report:
         :param legend_position: position of the legend
         :return: pyplot plot
         """
-        fig = plt.figure()
+        _ = plt.figure()
         plt.plot(x, y, color=color, lw=2, label=label)
 
         plt.xlabel(x_label)
@@ -386,20 +452,20 @@ class Report:
 if __name__ == "__main__":
     args = get_arguments()
     config = parse_args(args)
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f'Using {device} for pytorch models...')
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device} for pytorch models...")
     model = create_skorch_model(
-                    device=device,
-                    encoding_dim=config["Model"]["encoding_dim"],
-                    wave=config["Model"]["in_channels"],
-                    large=config["Model"]["use_large"],
-                    loss=config["Model"]["loss"],
-                    use_tensorboard=config["use_tensorboard"],
-                    max_epochs=config["max_epochs"],
-                    lr=config["learning_rate"],
-                    batch_size=config["batch_size"]
-                    )
+        device=device,
+        encoding_dim=config["model"]["encoding_dim"],
+        wave=config["model"]["in_channels"],
+        large=config["model"]["use_large"],
+        loss=config["model"]["loss"],
+        use_tensorboard=config["use_tensorboard"],
+        max_epochs=config["max_epochs"],
+        lr=config["learning_rate"],
+        batch_size=config["batch_size"],
+    )
     model.initialize()
-    model.load_params(f_params='./runs/final_ae.wts')
+    model.load_params(f_params="./runs/final_ae.wts")
     rep = Report(config, model, Path("../data/PerPixelAE_reporting/"))
     rep.generate_report()

@@ -6,6 +6,7 @@ from huggingface_hub import snapshot_download
 from omegaconf import OmegaConf
 import fire
 
+
 def download_hf(name, output_dir="./data"):
     """
     Download datasets and models from Hugging Face based on config.
@@ -44,8 +45,10 @@ def download_hf(name, output_dir="./data"):
         )
         print(f"Downloaded {repo_id} to: {cur_out_dir.resolve()}")
 
+
 def main():
     fire.Fire(download_hf)
+
 
 if __name__ == "__main__":
     main()
