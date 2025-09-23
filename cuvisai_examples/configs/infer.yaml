@@ -2,11 +2,13 @@ defaults:
   - model: placeholder
   - dataset: efficientad
   - runner: lightning
+  - _self_
 
+work_dir: ./work_dirs/exp
 checkpoint: null
 
 dataloader:
   batch_size: 2
   num_workers: 0
 
-dataset: ${dataset.test}
+test_dataset: ${dataset.test}
