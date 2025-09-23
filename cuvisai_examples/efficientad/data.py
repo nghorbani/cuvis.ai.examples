@@ -20,7 +20,7 @@ class EfficientADCuvisDataset(Dataset):
 
     def __init__(
         self,
-        path: str = "data/cubes",
+        dataset_dir: str = "data/cubes",
         mode: str = "train",
         imagenet_dir: str = "../data/ImageNet_6_channel",
         imagenet_file_ending: str = ".npy",
@@ -31,6 +31,7 @@ class EfficientADCuvisDataset(Dataset):
         max_img_shape: int = 1500,
         white_percentage: float = 0.55,
         channels: str = "ALL",
+        max_data_load: int = -1,
     ):
         """
         :param path: Path to the session files. These must contain data cubes which are expected to be in reflectance mode. default: 'data/cubes'
@@ -45,7 +46,7 @@ class EfficientADCuvisDataset(Dataset):
         :param white_percentage: Diffuse reflectance of the white target used as reference for the reflectance calculation. default: 0.55
         :param channels: Which channels of the datacube to use. This can be 'RGB', 'SWIR' or 'ALL'. default: 'ALL'
         """
-        self.path = path
+        self.path = dataset_dir
         self.mode = mode
         self.imagenet_file_ending = imagenet_file_ending
         self.imagenet_dir = imagenet_dir
@@ -55,6 +56,12 @@ class EfficientADCuvisDataset(Dataset):
             for file in files
             if file.lower().endswith(".npz")
         ]
+        if max_data_load > 0:
+            logger.warning(
+                f"max_data_load is set, so only a subset {max_data_load} of the dataset files {len(self.file_paths)} will be used!"
+            )
+            self.file_paths = self.file_paths[:max_data_load]
+
         self.in_channels = in_channels
         self.images = [
             [file_path, 0]
@@ -70,6 +77,12 @@ class EfficientADCuvisDataset(Dataset):
                 if file.lower().endswith(self.imagenet_file_ending)
                 and mode in os.path.join(root, file)
             ]
+        if max_data_load > 0:
+            logger.warning(
+                f"max_data_load is set, so only a subset {max_data_load} of the ImageNet files {len(self.imgNet_files)} will be used!"
+            )
+            self.imgNet_files = self.imgNet_files[:max_data_load]
+
         logger.info(
             f"Found {len(self.images)} {mode} images and {len(self.imgNet_files)} ImageNet images"
         )

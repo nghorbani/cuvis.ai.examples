@@ -353,6 +353,7 @@ class EfficientAD_lightning(L.LightningModule):
         Returns:
             tuple[torch.Tensor, torch.Tensor]: Two scalars - the 90% and the 99.5% quantile.
         """
+        
         maps_flat = reduce_tensor_elems(torch.cat(maps))
         qa = torch.quantile(maps_flat, q=0.9).to(self.device)
         qb = torch.quantile(maps_flat, q=0.995).to(self.device)
@@ -445,6 +446,7 @@ class EfficientAD_lightning(L.LightningModule):
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str, required=True)
+    parser.add_argument("--enable_debug", action="store_true", help="Enable debug mode: set train batch size to 1, val batch size to 2, workers to 0")
     args = parser.parse_args()
     return args
 
@@ -456,6 +458,8 @@ def parse_args(args):
 
 
 def train(config):
+    enable_debug = config.get("enable_debug", False)
+
     train_data = EfficientADCuvisDataset(
         config["datasets"]["train"]["root"],
         mode="train",
@@ -467,14 +471,15 @@ def train(config):
         max_img_shape=config["max_img_shape"],
         white_percentage=config["white_percentage"],
         channels=config["channels"],
+        max_data_load=2 if enable_debug else -1,
     )
 
     train_loader = DataLoader(
         train_data,
         batch_size=config["model"]["batch_size"],
         shuffle=True,
-        num_workers=4,
-        persistent_workers=True,
+        num_workers=0 if enable_debug else 4,
+        persistent_workers=False if enable_debug else True,
     )
 
     test_data = EfficientADCuvisDataset(
@@ -488,10 +493,12 @@ def train(config):
         max_img_shape=config["max_img_shape"],
         white_percentage=config["white_percentage"],
         channels=config["channels"],
+        max_data_load=2 if enable_debug else -1,
+
     )
 
     test_loader = DataLoader(
-        test_data, batch_size=config["model"]["batch_size"], shuffle=False
+        test_data, batch_size=config["model"]["batch_size"], shuffle=False, num_workers=0 if enable_debug else 4
     )
 
     # create custom callback to save a model checkpoint for every epoch
@@ -522,6 +529,9 @@ def train(config):
         precision="16-mixed",
         gradient_clip_val=0.5,
         callbacks=[checkpoint_callback],
+        limit_train_batches=1 if enable_debug else 1.0,
+        limit_val_batches=2 if enable_debug else 1.0,
+        fast_dev_run=True if enable_debug else False,
     )
 
     trainer.fit(model, train_loader, test_loader)
@@ -529,6 +539,7 @@ def train(config):
 def main():
     args = get_arguments()
     config = parse_args(args)
+    config["enable_debug"] = args.enable_debug
     train(config)
 
 
