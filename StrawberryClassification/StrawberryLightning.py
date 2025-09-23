@@ -1,18 +1,17 @@
 import itertools
 
-import lightning as L
-import torchvision.transforms
-
-from UNet import FreshTwin2DUNet
-import torch
-from torchmetrics.segmentation import DiceScore, MeanIoU
-from torchmetrics.classification import AveragePrecision, Accuracy, ROC, AUROC
-from torchvision.transforms.functional import equalize
-import torch.nn.functional as F
 import cv2 as cv
 from gpu_pca import IncrementalPCAonGPU as IncPca
-from tqdm import tqdm
+import lightning as L
 import matplotlib.pyplot as plt
+import torch
+import torch.nn.functional as F
+from torchmetrics.classification import AUROC, ROC, Accuracy, AveragePrecision
+from torchmetrics.segmentation import DiceScore, MeanIoU
+import torchvision.transforms
+from torchvision.transforms.functional import equalize
+from tqdm import tqdm
+from UNet import FreshTwin2DUNet
 
 
 class GeneralizedDiceLoss(torch.nn.Module):

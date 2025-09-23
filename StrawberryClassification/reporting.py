@@ -1,11 +1,13 @@
-from torch.utils.data import DataLoader
-from Reporting.Report import Report
-import yaml
 import argparse
-import lightning as L
 from pathlib import Path
-from StrawberryLightning import StrawberryLightning
+
+import lightning as L
 from StrawberryDataset import StrawberryDataset
+from StrawberryLightning import StrawberryLightning
+from torch.utils.data import DataLoader
+import yaml
+
+from Reporting.Report import Report
 
 
 def get_arguments():

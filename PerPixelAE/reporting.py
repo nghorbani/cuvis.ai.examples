@@ -1,22 +1,22 @@
+import argparse
+from collections import defaultdict
+import glob
+import json
+import os
 import pathlib
+from pathlib import Path
+
+from matplotlib import pyplot as plt
 import numpy as np
 from PerPixelAECuvisDataSet import PerPixelAECuvisDataSet
-import yaml
-import torch
-from sklearn.metrics import roc_curve
-from matplotlib import pyplot as plt
-import argparse
-import os
-import tqdm
-from torch.utils.data.dataloader import DataLoader
-from pathlib import Path
-import json
-import glob
-from sklearn.metrics import auc
-from collections import defaultdict
 from PerPixelAEModels import (
     create_skorch_model,
 )
+from sklearn.metrics import auc, roc_curve
+import torch
+from torch.utils.data.dataloader import DataLoader
+import tqdm
+import yaml
 
 
 def get_arguments():

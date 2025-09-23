@@ -24,10 +24,13 @@ dependencies = [
   "pytest>=8.4.2",
   "ruff>=0.13.1",
   "fire>=0.7.1",
+  "loguru>=0.7.3",
 ]
 
 [project.scripts]
-get-data = "cuvisai_examples.get_data:main"
+get-data = "cuvisai_examples.utils.get_data:main"
+efficientad-train = "cuvisai_examples.efficientad.train:main"
+
 # cuvisai-train = "cuvisai_examples.cli.train:main"
 # cuvisai-infer = "cuvisai_examples.cli.infer:main"
 # cuvisai-report = "cuvisai_examples.cli.report:main"
@@ -37,3 +40,10 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["cuvisai_examples"]
+
+[tool.ruff.lint]
+select = ["I"]
+
+[tool.ruff.lint.isort]
+force-single-line = false
+force-sort-within-sections = true

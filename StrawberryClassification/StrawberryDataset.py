@@ -1,10 +1,11 @@
-import torchvision
-from torch.utils.data import Dataset
-import cuvis
 from pathlib import Path
+
+import cuvis
+import cv2 as cv
 import numpy as np
 import torch
-import cv2 as cv
+from torch.utils.data import Dataset
+import torchvision
 
 
 class StrawberryDataset(Dataset):

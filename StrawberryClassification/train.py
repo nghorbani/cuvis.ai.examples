@@ -1,13 +1,14 @@
 import argparse
-import yaml
+from pathlib import Path
+
 import lightning as L
-from StrawberryLightning import StrawberryLightning
-from torch.utils.data import DataLoader
-from StrawberryDataset import StrawberryDataset
 from lightning.pytorch.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pathlib import Path
+from StrawberryDataset import StrawberryDataset
+from StrawberryLightning import StrawberryLightning
 import torch
+from torch.utils.data import DataLoader
+import yaml
 
 
 def get_arguments():

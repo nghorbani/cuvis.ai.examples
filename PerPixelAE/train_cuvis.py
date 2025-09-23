@@ -1,11 +1,12 @@
-import os
 import argparse
-import yaml
+import os
+
 from PerPixelAECuvisDataSet import PerPixelAECuvisDataSet
 from PerPixelAEModels import (
     create_skorch_model,
 )
 import torch
+import yaml
 
 
 def get_arguments():

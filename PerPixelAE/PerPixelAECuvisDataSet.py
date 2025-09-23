@@ -1,15 +1,16 @@
-import torchvision
-from torch.utils.data import Dataset
-import cuvis
-import os
-import glob
-from cuvis.cuvis_types import ProcessingMode
-import numpy as np
-import cv2 as cv
-import torch
-from torchvision.transforms import v2
 from functools import partial
+import glob
+import os
 from pathlib import Path
+
+import cuvis
+from cuvis.cuvis_types import ProcessingMode
+import cv2 as cv
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+import torchvision
+from torchvision.transforms import v2
 
 
 class PerPixelAECuvisDataSet(Dataset):

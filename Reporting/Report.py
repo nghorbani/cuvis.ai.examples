@@ -1,17 +1,18 @@
+from enum import Enum
+import os
+from pathlib import Path
 import warnings
-import torch
+
 import lightning as L
+from matplotlib import cm
+from matplotlib import pyplot as plt
+from matplotlib.colors import ListedColormap
+import matplotlib.patches as mpatches
+import torch
+from torch.utils.data.dataloader import DataLoader
 import torchmetrics
 import tqdm
-from pathlib import Path
-import os
 import yaml
-from torch.utils.data.dataloader import DataLoader
-from matplotlib import pyplot as plt
-from matplotlib import cm
-from matplotlib.colors import ListedColormap
-from enum import Enum
-import matplotlib.patches as mpatches
 
 
 class Metrics(Enum):

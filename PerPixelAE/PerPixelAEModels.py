@@ -1,12 +1,12 @@
-import torch
-from torch import nn
 import sys
+
 from skorch import NeuralNetRegressor
 
 # from PerPixelAEModels import HybridLoss, CosSpectralAngleLoss, Autoencoder, AutoencoderSmall
-from skorch.callbacks import EarlyStopping, Checkpoint, ProgressBar
+from skorch.callbacks import Checkpoint, EarlyStopping, ProgressBar, TensorBoard
+import torch
+from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from skorch.callbacks import TensorBoard
 
 
 # Initialize the model and the Skorch wrapper
