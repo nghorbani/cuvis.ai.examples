@@ -6,12 +6,13 @@ import random
 # import cuvis
 # from cuvis.cuvis_types import ProcessingMode
 import cv2 as cv
+from loguru import logger
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 import torchvision
 from torchvision.transforms import v2
-from loguru import logger
+
 
 class EfficientADCuvisDataset(Dataset):
     """
@@ -61,9 +62,11 @@ class EfficientADCuvisDataset(Dataset):
                 f"max_data_load is set, so only a subset {max_data_load} of the dataset files {len(self.file_paths)} will be used!"
             )
             if self.mode == "train":
-                self.file_paths = self.file_paths[:max_data_load] 
+                self.file_paths = self.file_paths[:max_data_load]
             else:
-                self.file_paths = [f for f in self.file_paths if "_ok_ok_" in f][:max_data_load] # this is to include non defect samples for debugging
+                self.file_paths = [f for f in self.file_paths if "_ok_ok_" in f][
+                    :max_data_load
+                ]  # this is to include non defect samples for debugging
 
         self.in_channels = in_channels
         self.images = [
@@ -89,11 +92,12 @@ class EfficientADCuvisDataset(Dataset):
         logger.info(
             f"Found {len(self.images)} {mode} images and {len(self.imgnet_files)} ImageNet images"
         )
-        
+
         if mode == "test":
             self.gt = {}
             for file_path in self.file_paths:
-                if "_ok_ok_" in file_path: continue # no GT for good parts
+                if "_ok_ok_" in file_path:
+                    continue  # no GT for good parts
                 self.gt[file_path] = file_path.replace(".npz", "_0_RGB_mask.png")
 
         self.transform = v2.Compose(

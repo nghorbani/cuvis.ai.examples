@@ -5,6 +5,7 @@ import random
 import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
+from loguru import logger
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -23,7 +24,7 @@ import yaml
 
 from cuvisai_examples.efficientad.data import EfficientADCuvisDataset
 from cuvisai_examples.efficientad.model import EfficientAdModel
-from loguru import logger
+
 
 def reduce_tensor_elems(tensor: torch.Tensor, m: int = 2**24) -> torch.Tensor:
     """Reduce tensor elements.
@@ -86,21 +87,18 @@ class EfficientAD_lightning(L.LightningModule):
         self.roc = ROC(task="binary")
         self.prc = PrecisionRecallCurve(task="binary")
         self.ap = AveragePrecision(task="binary")
-        self.acc1 = Accuracy(task="binary", threshold=0.1)
-        self.acc2 = Accuracy(task="binary", threshold=0.2)
-        self.acc3 = Accuracy(task="binary", threshold=0.3)
-        self.acc4 = Accuracy(task="binary", threshold=0.4)
-        self.acc5 = Accuracy(task="binary", threshold=0.5)
-        self.dice1 = DiceScore(num_classes=2, include_background=False)
-        self.dice2 = DiceScore(num_classes=2, include_background=False)
-        self.dice3 = DiceScore(num_classes=2, include_background=False)
-        self.dice4 = DiceScore(num_classes=2, include_background=False)
-        self.dice5 = DiceScore(num_classes=2, include_background=False)
-        self.iou1 = MeanIoU(num_classes=2, include_background=False)
-        self.iou2 = MeanIoU(num_classes=2, include_background=False)
-        self.iou3 = MeanIoU(num_classes=2, include_background=False)
-        self.iou4 = MeanIoU(num_classes=2, include_background=False)
-        self.iou5 = MeanIoU(num_classes=2, include_background=False)
+        # Dictionary-based metrics for better organization
+        self.thresholds = [0.1, 0.2, 0.3, 0.4, 0.5]
+
+        # Use attributes for thresholded metrics to avoid device issues
+        for t in self.thresholds:
+            setattr(self, f"acc_at_{t}", Accuracy(task="binary", threshold=t))
+            setattr(
+                self, f"dice_at_{t}", DiceScore(num_classes=2, include_background=False)
+            )
+            setattr(
+                self, f"iou_at_{t}", MeanIoU(num_classes=2, include_background=False)
+            )
         self.dice_bg = DiceScore(num_classes=2, include_background=True)
         self.iou_bg = MeanIoU(num_classes=2, include_background=True)
         self.has_masks = False
@@ -141,7 +139,6 @@ class EfficientAD_lightning(L.LightningModule):
 
         res = self.model(batch["image"], return_all_maps=True)
 
-
         amap = res["anomaly_map"].detach().squeeze(0)
         map_st = res["map_st"]
         map_ae = res["map_ae"]
@@ -153,30 +150,34 @@ class EfficientAD_lightning(L.LightningModule):
         self.roc.update(score, label)
         self.prc.update(score, label)
         self.ap.update(score, label)
-        self.acc1.update(score, label)
-        self.acc2.update(score, label)
-        self.acc3.update(score, label)
-        self.acc4.update(score, label)
-        self.acc5.update(score, label)
+        # Update attribute-based accuracy metrics
+        for threshold in self.thresholds:
+            metric = getattr(self, f"acc_at_{threshold}")
+            metric.update(score, label)
+
         # Segmentation Metrics
         # if     INTACT        or      DEFECT       and    MASK EXISTS
         if (label.item() == 0) or (label.item() == 1 and gt_mask.max().item() > 0):
             self.has_masks = True
-            logger.info(f"Tesnsor shape gt_mask: {gt_mask.shape}, amap: {amap.shape}")
 
-            import ipdb; ipdb.set_trace()
-            self.dice_bg.update(amap > 0.5, gt_mask)
-            self.dice1.update(amap > 0.1, gt_mask)
-            self.dice2.update(amap > 0.2, gt_mask)
-            self.dice3.update(amap > 0.3, gt_mask)
-            self.dice4.update(amap > 0.4, gt_mask)
-            self.dice5.update(amap > 0.5, gt_mask)
-            self.iou_bg.update(amap > 0.5, gt_mask)
-            self.iou1.update(amap > 0.1, gt_mask)
-            self.iou2.update(amap > 0.2, gt_mask)
-            self.iou3.update(amap > 0.3, gt_mask)
-            self.iou4.update(amap > 0.4, gt_mask)
-            self.iou5.update(amap > 0.5, gt_mask)
+            # Update background metrics
+            pred_bg_formatted, target_bg_formatted = self._format_for_dice_score(
+                amap > 0.5, gt_mask
+            )
+            self.dice_bg.update(pred_bg_formatted, target_bg_formatted)
+            self.iou_bg.update(pred_bg_formatted, target_bg_formatted)
+
+            # Update attribute-based segmentation metrics
+            for threshold in self.thresholds:
+                pred_formatted, target_formatted = self._format_for_dice_score(
+                    amap > threshold, gt_mask
+                )
+                getattr(self, f"dice_at_{threshold}").update(
+                    pred_formatted, target_formatted
+                )
+                getattr(self, f"iou_at_{threshold}").update(
+                    pred_formatted, target_formatted
+                )
 
         # Image Logging
         image = batch["image"].detach().squeeze().cpu()
@@ -269,11 +270,10 @@ class EfficientAD_lightning(L.LightningModule):
         """Called after every validation epoch. Logs all accumulated data and clears buffers."""
         self.log("val_im/AU-ROC", self.auroc, on_epoch=True, prog_bar=True)
         self.log("val_im/AP", self.ap, on_epoch=True)
-        self.log("val_im/Acc_0.1", self.acc1, on_epoch=True)
-        self.log("val_im/Acc_0.2", self.acc2, on_epoch=True)
-        self.log("val_im/Acc_0.3", self.acc3, on_epoch=True)
-        self.log("val_im/Acc_0.4", self.acc4, on_epoch=True)
-        self.log("val_im/Acc_0.5", self.acc5, on_epoch=True)
+        # Log attribute-based accuracy metrics
+        for threshold in self.thresholds:
+            metric = getattr(self, f"acc_at_{threshold}")
+            self.log(f"val_im/Acc_{threshold}", metric, on_epoch=True)
         roc_fig, _ = self.roc.plot(score=True)
         self.logger.experiment.add_figure(
             "curve/ROC", roc_fig, global_step=self.global_step
@@ -287,18 +287,15 @@ class EfficientAD_lightning(L.LightningModule):
         self.roc.reset()
         self.prc.reset()
         if self.has_masks:
+            # Log attribute-based segmentation metrics
             self.log("val_IoU/t=0.5_BG", self.iou_bg.compute(), on_epoch=True)
-            self.log("val_IoU/t=0.1", self.iou1, on_epoch=True)
-            self.log("val_IoU/t=0.2", self.iou2, on_epoch=True)
-            self.log("val_IoU/t=0.3", self.iou3, on_epoch=True)
-            self.log("val_IoU/t=0.4", self.iou4, on_epoch=True)
-            self.log("val_IoU/t=0.5", self.iou5, on_epoch=True)
             self.log("val_F1/t=0.5_BG", self.dice_bg, on_epoch=True)
-            self.log("val_F1/t=0.1", self.dice1, on_epoch=True)
-            self.log("val_F1/t=0.2", self.dice2, on_epoch=True)
-            self.log("val_F1/t=0.3", self.dice3, on_epoch=True)
-            self.log("val_F1/t=0.4", self.dice4, on_epoch=True)
-            self.log("val_F1/t=0.5", self.dice5, on_epoch=True)
+
+            for threshold in self.thresholds:
+                iou_metric = getattr(self, f"iou_at_{threshold}")
+                dice_metric = getattr(self, f"dice_at_{threshold}")
+                self.log(f"val_IoU/t={threshold}", iou_metric, on_epoch=True)
+                self.log(f"val_F1/t={threshold}", dice_metric, on_epoch=True)
         self.images_logged = []
 
     @torch.no_grad()
@@ -322,7 +319,7 @@ class EfficientAD_lightning(L.LightningModule):
             leave=False,
         ):
             for img, label in zip(batch["image"], batch["label"], strict=True):
-                if label == 0:  # only use good images of validation set! 
+                if label == 0:  # only use good images of validation set!
                     output = self.model(
                         img.to(self.device), normalize=False, return_all_maps=True
                     )
@@ -342,6 +339,28 @@ class EfficientAD_lightning(L.LightningModule):
             weight_decay=self.weight_decay,
         )
         return optimizer
+
+    def _format_for_dice_score(
+        self, pred: torch.Tensor, target: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Format tensors for DiceScore metric.
+
+        DiceScore expects binary masks with proper shape for binary segmentation.
+        The prediction should be converted to int8/long type and target should be int.
+
+        Args:
+            pred (torch.Tensor): Prediction tensor (binary mask)
+            target (torch.Tensor): Target tensor (ground truth mask)
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: Formatted prediction and target tensors
+        """
+        # Ensure pred is in correct format for DiceScore
+        # DiceScore expects int type tensors for binary segmentation
+        pred_formatted = pred.int()
+        target_formatted = target.int()
+
+        return pred_formatted, target_formatted
 
     def _get_quantiles_of_maps(
         self, maps: list[torch.Tensor]
@@ -451,7 +470,11 @@ class EfficientAD_lightning(L.LightningModule):
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str, required=True)
-    parser.add_argument("--enable_debug", action="store_true", help="Enable debug mode: set train batch size to 1, val batch size to 2, workers to 0")
+    parser.add_argument(
+        "--enable_debug",
+        action="store_true",
+        help="Enable debug mode: set train batch size to 1, val batch size to 2, workers to 0",
+    )
     args = parser.parse_args()
     return args
 
@@ -499,11 +522,13 @@ def train(config):
         white_percentage=config["white_percentage"],
         channels=config["channels"],
         max_data_load=2 if enable_debug else -1,
-
     )
 
     test_loader = DataLoader(
-        test_data, batch_size=config["model"]["batch_size"], shuffle=False, num_workers=0 if enable_debug else 4
+        test_data,
+        batch_size=config["model"]["batch_size"],
+        shuffle=False,
+        num_workers=0 if enable_debug else 4,
     )
 
     # create custom callback to save a model checkpoint for every epoch
@@ -540,6 +565,7 @@ def train(config):
     )
 
     trainer.fit(model, train_loader, test_loader)
+
 
 def main():
     args = get_arguments()
