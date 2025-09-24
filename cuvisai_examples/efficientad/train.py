@@ -107,7 +107,9 @@ class EfficientAD_lightning(L.LightningModule):
 
     def training_step(self, batch, batch_idx):
         """Train the model for one step."""
-        loss_st, loss_ae, loss_stae = self.model.forward(batch["image"], batch["imgnet_img"])
+        loss_st, loss_ae, loss_stae = self.model.forward(
+            image_batch=batch["image"], imagenet_batch=batch["imgnet_img"], image_ae_aug=batch["image_ae"]
+        )
         loss_total = loss_st + loss_ae + loss_stae
         self.log("train/st", loss_st.item(), on_epoch=True, prog_bar=True)
         self.log("train/ae", loss_ae.item(), on_epoch=True, prog_bar=True)
@@ -308,6 +310,23 @@ class EfficientAD_lightning(L.LightningModule):
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
+
+        # # Add learning rate scheduler as per implementation_plan_II
+        # def lr_lambda(step):
+        #     total_steps = self.config.get("max_steps", 70000)
+        #     threshold = int(total_steps * self.config.get("lr_reduce_at_pct", 0.95))
+        #     return 0.1 if step >= threshold else 1.0
+
+        # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
+
+        # return {
+        #     "optimizer": optimizer,
+        #     "lr_scheduler": {
+        #         "scheduler": scheduler,
+        #         "interval": "step",
+        #         "frequency": 1,
+        #     },
+        # }
         return optimizer
 
     def _format_for_dice_score(self, pred: torch.Tensor, target: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
