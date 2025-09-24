@@ -4,3 +4,4 @@ cuvisai_examples.egg-info/*
 data/
 .env
 workdir*/
+qdrant_storage/

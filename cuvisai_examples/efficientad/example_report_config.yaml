@@ -15,7 +15,7 @@ model:
   batch_size: 1 # this should always be 1 for EfficientAD
   channel_size: 384 # number of teacher output channels
   in_channels: 6 # number of input channels to the model
-  use_imgNet_penalty: True # weather to use the imageNet loss penalty in training, this is set for compatibility reasons
+  use_imgnet_penalty: True # weather to use the imageNet loss penalty in training, this is set for compatibility reasons
 seed: 42
 checkpoint_to_load: ./EAD_model_0.93_new.ckpt # path to the model checkpoint which should be used for interference
 

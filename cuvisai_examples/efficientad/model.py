@@ -324,7 +324,7 @@ class EfficientAdModel(nn.Module):
             output anomaly maps so that their size matches the size in the padding = True case.
             Defaults to ``True``.
         in_channels(int): number of input channels
-        use_imgNet_penalty(bool): weather to use the imgNet penalty in training
+        use_imgnet_penalty(bool): weather to use the imgNet penalty in training
     """
 
     def __init__(
@@ -334,7 +334,7 @@ class EfficientAdModel(nn.Module):
         padding: bool = False,
         pad_maps: bool = True,
         in_channels: int = 6,
-        use_imgNet_penalty: bool = False,
+        use_imgnet_penalty: bool = False,
     ) -> None:
         super().__init__()
         self.pad_maps = pad_maps
@@ -389,7 +389,7 @@ class EfficientAdModel(nn.Module):
                 "qb_ae": torch.tensor(0.0),
             },
         )
-        self.use_imgNet_penalty = use_imgNet_penalty
+        self.use_imgnet_penalty = use_imgnet_penalty
 
     @staticmethod
     def is_set(p_dic: nn.ParameterDict) -> bool:
@@ -439,7 +439,7 @@ class EfficientAdModel(nn.Module):
             distance_st = reduce_tensor_elems(distance_st)
             d_hard = torch.quantile(distance_st, 0.999)
             loss_hard = torch.mean(distance_st[distance_st >= d_hard])
-            if self.use_imgNet_penalty:
+            if self.use_imgnet_penalty:
                 student_output_penalty = self.student(batch_imagenet)[
                     :, : self.teacher_out_channels, :, :
                 ]

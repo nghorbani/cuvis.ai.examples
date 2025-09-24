@@ -65,7 +65,7 @@ class EfficientAD_lightning(L.LightningModule):
             384,
             in_channels=self.in_channels,
             model_size=config["model"]["model_size"],
-            use_imgNet_penalty=config["model"]["use_imgNet_penalty"],
+            use_imgnet_penalty=config["model"]["use_imgnet_penalty"],
         )
         self.student = self.model.student
         self.student = self.student.cuda()
