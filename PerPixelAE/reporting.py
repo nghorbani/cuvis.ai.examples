@@ -42,9 +42,7 @@ class Report:
         reporting_root_folder(pathlib.Path): root folder where reportings should be saved
     """
 
-    def __init__(
-        self, config: dict, model: torch.nn.Module, reporting_root_folder: pathlib.Path
-    ):
+    def __init__(self, config: dict, model: torch.nn.Module, reporting_root_folder: pathlib.Path):
         self.config = config
         self.model = model
         self.mean = np.array(config["means"])
@@ -53,19 +51,11 @@ class Report:
         self.reporting_root_folder = reporting_root_folder
         self.name = config["name"]
         self.reporting_run_folder = reporting_root_folder / self.name
-        self.create_images = (
-            config["create_images"] if "create_images" in config else True
-        )
+        self.create_images = config["create_images"] if "create_images" in config else True
         self.create_roc = config["create_roc"]
-        self.annotations = (
-            json.load(open(config["annotations"]))
-            if config["annotations"] != ""
-            else None
-        )
+        self.annotations = json.load(open(config["annotations"])) if config["annotations"] != "" else None
 
-    def plot_pixel_level_roc(
-        self, anomaly_score_maps, groundtruth_masks, normalize=True
-    ):
+    def plot_pixel_level_roc(self, anomaly_score_maps, groundtruth_masks, normalize=True):
         """
         Plot a pixel-level ROC curve and compute the overall AUC.
 
@@ -102,18 +92,14 @@ class Report:
         ValueError
             If the binary ground truth contains only one class (all 0s or all 1s), making ROC computation invalid.
         """
-        assert len(anomaly_score_maps) == len(groundtruth_masks), (
-            "Mismatch in number of images"
-        )
+        assert len(anomaly_score_maps) == len(groundtruth_masks), "Mismatch in number of images"
         # In this scenario, convert pixels to binary values
         groundtruth_masks = groundtruth_masks > 0
         y_scores = []
         y_true = []
 
         for score_map, gt_mask in zip(anomaly_score_maps, groundtruth_masks):
-            assert score_map.shape == gt_mask.shape, (
-                "Shape mismatch between score and groundtruth"
-            )
+            assert score_map.shape == gt_mask.shape, "Shape mismatch between score and groundtruth"
 
             if normalize:
                 score_min, score_max = score_map.min(), score_map.max()
@@ -126,9 +112,7 @@ class Report:
         y_true = np.concatenate(y_true)
 
         if len(np.unique(y_true)) < 2:
-            raise ValueError(
-                "ROC is undefined. Ground truth must have both 0 and 1 values."
-            )
+            raise ValueError("ROC is undefined. Ground truth must have both 0 and 1 values.")
 
         fpr, tpr, _ = roc_curve(y_true, y_scores)
         roc_auc = auc(fpr, tpr)
@@ -143,21 +127,15 @@ class Report:
         plt.legend(loc="lower right")
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(
-            f"{self.reporting_run_folder}/AUROC.png", dpi=300, bbox_inches="tight"
-        )
+        plt.savefig(f"{self.reporting_run_folder}/AUROC.png", dpi=300, bbox_inches="tight")
         plt.close()
         return fpr, tpr, roc_auc
 
-    def plot_per_class_pixel_roc(
-        self, anomaly_score_maps, groundtruth_masks, normalize=True, class_map=None
-    ):
+    def plot_per_class_pixel_roc(self, anomaly_score_maps, groundtruth_masks, normalize=True, class_map=None):
         """
         Optimized memory-efficient version of per-class pixel-level ROC and AUC computation.
         """
-        assert len(anomaly_score_maps) == len(groundtruth_masks), (
-            "Mismatch in number of images"
-        )
+        assert len(anomaly_score_maps) == len(groundtruth_masks), "Mismatch in number of images"
 
         inverted_class_map = {v: k for k, v in class_map.items()} if class_map else {}
 
@@ -217,14 +195,10 @@ class Report:
         plt.tight_layout()
 
         os.makedirs(self.reporting_run_folder, exist_ok=True)
-        plt.savefig(
-            f"{self.reporting_run_folder}/AUROC_Class.png", dpi=300, bbox_inches="tight"
-        )
+        plt.savefig(f"{self.reporting_run_folder}/AUROC_Class.png", dpi=300, bbox_inches="tight")
         plt.close()
 
-        return {
-            inverted_class_map.get(k, f"Class {k}"): float(v) for k, v in aucs.items()
-        }
+        return {inverted_class_map.get(k, f"Class {k}"): float(v) for k, v in aucs.items()}
 
     def generate_report(self):
         """
@@ -258,9 +232,7 @@ class Report:
                 white_percentage=config["white_percentage"],
                 channels=config["channels"],
             )
-            test_loader = DataLoader(
-                dataset, batch_size=1, shuffle=False, num_workers=0
-            )
+            test_loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
             pred = []
             for item in tqdm.tqdm(test_loader):
                 try:
@@ -268,8 +240,7 @@ class Report:
                     # Calculate error maps here
                     cube_shape = item["dims"]
                     anomaly_map = np.linalg.norm(
-                        res.reshape(cube_shape)
-                        - item["image"].numpy().reshape(cube_shape),
+                        res.reshape(cube_shape) - item["image"].numpy().reshape(cube_shape),
                         axis=0,
                     )
                     pred.append(
@@ -299,13 +270,9 @@ class Report:
                 if np.max(p["anomaly_map"]) > max_pred:
                     max_pred = np.max(p["anomaly_map"])
             if self.create_images:
-                for j, batch in enumerate(
-                    tqdm.tqdm(test_loader, desc="creating images")
-                ):
+                for j, batch in enumerate(tqdm.tqdm(test_loader, desc="creating images")):
                     rel_path = Path(cubes[j]).relative_to(dataset_path)
-                    target_folder = (
-                        self.reporting_run_folder / dataset_name / rel_path.parent
-                    )
+                    target_folder = self.reporting_run_folder / dataset_name / rel_path.parent
                     if not target_folder.is_dir():
                         target_folder.mkdir(parents=True, exist_ok=True)
                     inference_image, _ = self.create_inference_png(
@@ -318,9 +285,7 @@ class Report:
                     inference_image.savefig(target_folder / (cube_names[j] + ".png"))
                     plt.close(inference_image)
         if self.create_roc:
-            fpr, tpr, roc_auc = self.plot_pixel_level_roc(
-                np.array(all_scores), np.array(all_truths)
-            )
+            fpr, tpr, roc_auc = self.plot_pixel_level_roc(np.array(all_scores), np.array(all_truths))
             class_aucs = self.plot_per_class_pixel_roc(
                 np.array(all_scores).astype(np.float32),
                 np.array(all_truths).astype(np.float32),
@@ -346,9 +311,7 @@ class Report:
         """
         nrows = 2 + len(self.plot_thresholds)
         fig_height = 6 + len(self.plot_thresholds)
-        fig, ax = plt.subplots(
-            nrows, 2, tight_layout=True, dpi=600, figsize=(10, fig_height)
-        )
+        fig, ax = plt.subplots(nrows, 2, tight_layout=True, dpi=600, figsize=(10, fig_height))
         a_map = pred
         a_map = a_map + abs(a_map.min())
 
@@ -406,9 +369,7 @@ class Report:
             else:
                 overlay = ir.copy()
             overlay[a_map_threshold == 1] = [1, 0, 0]
-            ax[2 + i][0].imshow(
-                (a_map_threshold * 255).astype(np.uint8), vmax=255, vmin=0
-            )
+            ax[2 + i][0].imshow((a_map_threshold * 255).astype(np.uint8), vmax=255, vmin=0)
             ax[2 + i][1].imshow((overlay * 255).astype(np.uint8), vmax=255, vmin=0)
             ax[2 + i][1].set_title("RGB overlay with threshold")
 

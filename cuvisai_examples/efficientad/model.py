@@ -8,7 +8,7 @@ import math
 
 from loguru import logger
 import torch
-from torch import nn
+from torch import dtype, nn
 from torch.nn import functional as F  # noqa: N812
 
 
@@ -71,19 +71,13 @@ class SmallPatchDescriptionNetwork(nn.Module):
         in_channels(int): number of input channels
     """
 
-    def __init__(
-        self, out_channels: int, padding: bool = False, in_channels: int = 6
-    ) -> None:
+    def __init__(self, out_channels: int, padding: bool = False, in_channels: int = 6) -> None:
         super().__init__()
         pad_mult = 1 if padding else 0
-        self.conv1 = nn.Conv2d(
-            in_channels, 128, kernel_size=4, stride=1, padding=3 * pad_mult
-        )
+        self.conv1 = nn.Conv2d(in_channels, 128, kernel_size=4, stride=1, padding=3 * pad_mult)
         self.conv2 = nn.Conv2d(128, 256, kernel_size=4, stride=1, padding=3 * pad_mult)
         self.conv3 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1 * pad_mult)
-        self.conv4 = nn.Conv2d(
-            256, out_channels, kernel_size=4, stride=1, padding=0 * pad_mult
-        )
+        self.conv4 = nn.Conv2d(256, out_channels, kernel_size=4, stride=1, padding=0 * pad_mult)
         self.avgpool1 = nn.AvgPool2d(kernel_size=2, stride=2, padding=1 * pad_mult)
         self.avgpool2 = nn.AvgPool2d(kernel_size=2, stride=2, padding=1 * pad_mult)
         self.in_channels = in_channels
@@ -117,23 +111,15 @@ class MediumPatchDescriptionNetwork(nn.Module):
         in_channels(int): number of input channels
     """
 
-    def __init__(
-        self, out_channels: int, padding: bool = False, in_channels: int = 6
-    ) -> None:
+    def __init__(self, out_channels: int, padding: bool = False, in_channels: int = 6) -> None:
         super().__init__()
         pad_mult = 1 if padding else 0
-        self.conv1 = nn.Conv2d(
-            in_channels, 256, kernel_size=4, stride=1, padding=3 * pad_mult
-        )
+        self.conv1 = nn.Conv2d(in_channels, 256, kernel_size=4, stride=1, padding=3 * pad_mult)
         self.conv2 = nn.Conv2d(256, 512, kernel_size=4, stride=1, padding=3 * pad_mult)
         self.conv3 = nn.Conv2d(512, 512, kernel_size=1, stride=1, padding=0 * pad_mult)
         self.conv4 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1 * pad_mult)
-        self.conv5 = nn.Conv2d(
-            512, out_channels, kernel_size=4, stride=1, padding=0 * pad_mult
-        )
-        self.conv6 = nn.Conv2d(
-            out_channels, out_channels, kernel_size=1, stride=1, padding=0 * pad_mult
-        )
+        self.conv5 = nn.Conv2d(512, out_channels, kernel_size=4, stride=1, padding=0 * pad_mult)
+        self.conv6 = nn.Conv2d(out_channels, out_channels, kernel_size=1, stride=1, padding=0 * pad_mult)
         self.avgpool1 = nn.AvgPool2d(kernel_size=2, stride=2, padding=1 * pad_mult)
         self.avgpool2 = nn.AvgPool2d(kernel_size=2, stride=2, padding=1 * pad_mult)
         self.in_channels = in_channels
@@ -221,9 +207,7 @@ class Decoder(nn.Module):
         self.dropout5 = nn.Dropout(p=0.2)
         self.dropout6 = nn.Dropout(p=0.2)
 
-    def forward(
-        self, x: torch.Tensor, image_size: tuple[int, int] | torch.Size
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, image_size: tuple[int, int] | torch.Size) -> torch.Tensor:
         """Perform a forward pass through the network.
 
         Args:
@@ -234,41 +218,25 @@ class Decoder(nn.Module):
             torch.Tensor: Output from the network.
         """
         last_upsample = (
-            math.ceil(image_size[0] / 4)
-            if self.padding
-            else math.ceil(image_size[0] / 4) - 8,
-            math.ceil(image_size[1] / 4)
-            if self.padding
-            else math.ceil(image_size[1] / 4) - 8,
+            math.ceil(image_size[0] / 4) if self.padding else math.ceil(image_size[0] / 4) - 8,
+            math.ceil(image_size[1] / 4) if self.padding else math.ceil(image_size[1] / 4) - 8,
         )
-        x = F.interpolate(
-            x, size=(image_size[0] // 64 - 1, image_size[1] // 64 - 1), mode="bilinear"
-        )
+        x = F.interpolate(x, size=(image_size[0] // 64 - 1, image_size[1] // 64 - 1), mode="bilinear")
         x = F.relu(self.deconv1(x))
         x = self.dropout1(x)
-        x = F.interpolate(
-            x, size=(image_size[0] // 32, image_size[1] // 32), mode="bilinear"
-        )
+        x = F.interpolate(x, size=(image_size[0] // 32, image_size[1] // 32), mode="bilinear")
         x = F.relu(self.deconv2(x))
         x = self.dropout2(x)
-        x = F.interpolate(
-            x, size=(image_size[0] // 16 - 1, image_size[1] // 16 - 1), mode="bilinear"
-        )
+        x = F.interpolate(x, size=(image_size[0] // 16 - 1, image_size[1] // 16 - 1), mode="bilinear")
         x = F.relu(self.deconv3(x))
         x = self.dropout3(x)
-        x = F.interpolate(
-            x, size=(image_size[0] // 8, image_size[1] // 8), mode="bilinear"
-        )
+        x = F.interpolate(x, size=(image_size[0] // 8, image_size[1] // 8), mode="bilinear")
         x = F.relu(self.deconv4(x))
         x = self.dropout4(x)
-        x = F.interpolate(
-            x, size=(image_size[0] // 4 - 1, image_size[1] // 4 - 1), mode="bilinear"
-        )
+        x = F.interpolate(x, size=(image_size[0] // 4 - 1, image_size[1] // 4 - 1), mode="bilinear")
         x = F.relu(self.deconv5(x))
         x = self.dropout5(x)
-        x = F.interpolate(
-            x, size=(image_size[0] // 2 - 1, image_size[1] // 2 - 1), mode="bilinear"
-        )
+        x = F.interpolate(x, size=(image_size[0] // 2 - 1, image_size[1] // 2 - 1), mode="bilinear")
         x = F.relu(self.deconv6(x))
         x = self.dropout6(x)
         x = F.interpolate(x, size=last_upsample, mode="bilinear")
@@ -285,17 +253,13 @@ class AutoEncoder(nn.Module):
        in_channels(int): number of input channels
     """
 
-    def __init__(
-        self, out_channels: int, padding: int, in_channels: int = 6, *args, **kwargs
-    ) -> None:
+    def __init__(self, out_channels: int, padding: int, in_channels: int = 6, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.encoder = Encoder(in_channels)
         self.decoder = Decoder(out_channels, padding)
         self.in_channels = in_channels
 
-    def forward(
-        self, x: torch.Tensor, image_size: tuple[int, int] | torch.Size
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, image_size: tuple[int, int] | torch.Size) -> torch.Tensor:
         """Perform the forward pass through the network.
 
         Args:
@@ -369,30 +333,45 @@ class EfficientAdModel(nn.Module):
             msg = f"Unknown model size {model_size}"
             raise ValueError(msg)
 
-        self.ae: AutoEncoder = AutoEncoder(
-            out_channels=teacher_out_channels, padding=padding, in_channels=in_channels
-        )
+        self.ae: AutoEncoder = AutoEncoder(out_channels=teacher_out_channels, padding=padding, in_channels=in_channels)
         self.teacher_out_channels: int = teacher_out_channels
 
-        self.mean_std: nn.ParameterDict = nn.ParameterDict(
-            {
-                "mean": torch.zeros((1, self.teacher_out_channels, 1, 1)),
-                "std": torch.zeros((1, self.teacher_out_channels, 1, 1)),
-            },
+        # self.mean_std: nn.ParameterDict = nn.ParameterDict(
+        #     {
+        #         "mean": torch.zeros((1, self.teacher_out_channels, 1, 1)),
+        #         "std": torch.zeros((1, self.teacher_out_channels, 1, 1)),
+        #     },
+        # )
+
+        # self.quantiles: nn.ParameterDict = nn.ParameterDict(
+        #     {
+        #         "qa_st": torch.tensor(0.0),
+        #         "qb_st": torch.tensor(0.0),
+        #         "qa_ae": torch.tensor(0.0),
+        #         "qb_ae": torch.tensor(0.0),
+        #     },
+        # )
+
+        # Teacher normalization stats
+        self.register_buffer(
+            "teacher_mean", torch.zeros(1, self.teacher_out_channels, 1, 1, dtype=torch.float32), persistent=True
+        )
+        # std should start at 1 (not 0) to avoid division-by-zero before calibration
+        self.register_buffer(
+            "teacher_std", torch.ones(1, self.teacher_out_channels, 1, 1, dtype=torch.float32), persistent=True
         )
 
-        self.quantiles: nn.ParameterDict = nn.ParameterDict(
-            {
-                "qa_st": torch.tensor(0.0),
-                "qb_st": torch.tensor(0.0),
-                "qa_ae": torch.tensor(0.0),
-                "qb_ae": torch.tensor(0.0),
-            },
-        )
+        # Quantile scalars for map normalization
+        # Persist them if you want them saved/restored with checkpoints
+        self.register_buffer("qa_st", torch.tensor(0.0, dtype=torch.float32), persistent=False)
+        self.register_buffer("qb_st", torch.tensor(0.0, dtype=torch.float32), persistent=False)
+        self.register_buffer("qa_ae", torch.tensor(0.0, dtype=torch.float32), persistent=False)
+        self.register_buffer("qb_ae", torch.tensor(0.0, dtype=torch.float32), persistent=False)
+
         self.use_imgnet_penalty = use_imgnet_penalty
 
     @staticmethod
-    def is_set(p_dic: nn.ParameterDict) -> bool:
+    def is_set(p_value) -> bool:
         """Check if any of the parameters in the parameter dictionary is set.
 
         Args:
@@ -401,7 +380,7 @@ class EfficientAdModel(nn.Module):
         Returns:
             bool: Boolean indicating whether any of the parameters in the parameter dictionary is set.
         """
-        return any(value.sum() != 0 for _, value in p_dic.items())
+        return p_value.sum() != 0
 
     def forward(
         self,
@@ -423,16 +402,21 @@ class EfficientAdModel(nn.Module):
         """
         image_size = batch.shape[-2:]
         with torch.no_grad():
+            mean_std_set = self.is_set(self.teacher_mean) and self.is_set(self.teacher_std)
+            quantiles_set = (
+                self.is_set(self.qa_st)
+                and self.is_set(self.qb_st)
+                and self.is_set(self.qa_ae)
+                and self.is_set(self.qb_ae)
+            )
+
+        with torch.no_grad():
             teacher_output = self.teacher(batch)
-            if self.is_set(self.mean_std):
-                teacher_output = (
-                    teacher_output - self.mean_std["mean"]
-                ) / self.mean_std["std"]
+            if mean_std_set:
+                teacher_output = (teacher_output - self.teacher_mean) / self.teacher_std
 
         student_output = self.student(batch)
-        distance_st = torch.pow(
-            teacher_output - student_output[:, : self.teacher_out_channels, :, :], 2
-        )
+        distance_st = torch.pow(teacher_output - student_output[:, : self.teacher_out_channels, :, :], 2)
 
         if self.training:
             # Student loss
@@ -440,9 +424,7 @@ class EfficientAdModel(nn.Module):
             d_hard = torch.quantile(distance_st, 0.999)
             loss_hard = torch.mean(distance_st[distance_st >= d_hard])
             if self.use_imgnet_penalty:
-                student_output_penalty = self.student(batch_imagenet)[
-                    :, : self.teacher_out_channels, :, :
-                ]
+                student_output_penalty = self.student(batch_imagenet)[:, : self.teacher_out_channels, :, :]
                 loss_penalty = torch.mean(student_output_penalty**2)
             else:
                 loss_penalty = 0
@@ -454,14 +436,10 @@ class EfficientAdModel(nn.Module):
 
             with torch.no_grad():
                 teacher_output_aug = self.teacher(aug_img)
-                if self.is_set(self.mean_std):
-                    teacher_output_aug = (
-                        teacher_output_aug - self.mean_std["mean"]
-                    ) / self.mean_std["std"]
+                if mean_std_set:
+                    teacher_output_aug = (teacher_output_aug - self.teacher_mean) / self.teacher_std
 
-            student_output_ae_aug = self.student(aug_img)[
-                :, self.teacher_out_channels :, :, :
-            ]
+            student_output_ae_aug = self.student(aug_img)[:, self.teacher_out_channels :, :, :]
 
             distance_ae = torch.pow(teacher_output_aug - ae_output_aug, 2)
             distance_stae = torch.pow(ae_output_aug - student_output_ae_aug, 2)
@@ -487,17 +465,12 @@ class EfficientAdModel(nn.Module):
         map_st = F.interpolate(map_st, size=image_size, mode="bilinear")
         map_stae = F.interpolate(map_stae, size=image_size, mode="bilinear")
 
-        if self.is_set(self.quantiles) and normalize:
-            map_st = (
-                0.1
-                * (map_st - self.quantiles["qa_st"])
-                / (self.quantiles["qb_st"] - self.quantiles["qa_st"])
-            )
-            map_stae = (
-                0.1
-                * (map_stae - self.quantiles["qa_ae"])
-                / (self.quantiles["qb_ae"] - self.quantiles["qa_ae"])
-            )
+        if quantiles_set and normalize:
+            denom_st = (self.qb_st - self.qa_st).abs().clamp_min(1e-12)
+            denom_ae = (self.qb_ae - self.qa_ae).abs().clamp_min(1e-12)
+
+            map_st = 0.1 * (map_st - self.qa_st) / denom_st
+            map_stae = 0.1 * (map_stae - self.qa_ae) / denom_ae
 
         map_combined = map_st  # 0.5 * map_st + 0.5 * map_stae
         if return_all_maps:

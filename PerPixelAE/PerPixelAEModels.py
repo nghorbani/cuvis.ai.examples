@@ -44,9 +44,7 @@ def create_skorch_model(
     # Add a monitor to save the best performance
 
     checkpoint = Checkpoint(
-        monitor=lambda net: all(
-            net.history[-1, ("train_loss_best", "valid_loss_best")]
-        ),
+        monitor=lambda net: all(net.history[-1, ("train_loss_best", "valid_loss_best")]),
         f_params="./runs/params_{last_epoch[epoch]}.pt",
     )
     # Create initial callbacks
@@ -165,9 +163,7 @@ class HybridLoss(nn.Module):
         self.alpha = 0.1
 
     def forward(self, y, y_reconstructed):
-        return self.forward_mse(y, y_reconstructed) + self.alpha * self.forward_sam(
-            y, y_reconstructed
-        )
+        return self.forward_mse(y, y_reconstructed) + self.alpha * self.forward_sam(y, y_reconstructed)
 
     def forward_sam(self, y, y_reconstructed):
         # Normalize y and y_reconstructed along the feature dimension

@@ -78,55 +78,27 @@ class StrawberryLightning(L.LightningModule):
         self.pca_channels = config["pca_channels"]
         self.cube_channels = config["cube_channels"]
         self.pca = IncPca(n_components=self.pca_channels)
-        self.learning_rate = (
-            config["learning_rate"] if "learning_rate" in config else 1e-3
-        )
+        self.learning_rate = config["learning_rate"] if "learning_rate" in config else 1e-3
         self.weight_decay = config["weight_decay"] if "weight_decay" in config else 1e-5
         self.num_classes = config["num_classes"]
-        self.model = FreshTwin2DUNet(
-            in_channels=self.pca_channels, num_classes=self.num_classes, pca=self.pca
-        )
+        self.model = FreshTwin2DUNet(in_channels=self.pca_channels, num_classes=self.num_classes, pca=self.pca)
 
         self.roc = ROC(task="multiclass", num_classes=config["num_classes"])
         self.auroc = AUROC(task="multiclass", num_classes=config["num_classes"])
         self.ap = AveragePrecision(task="multiclass", num_classes=config["num_classes"])
-        self.acc1 = Accuracy(
-            task="multiclass", num_classes=config["num_classes"], threshold=0.1
-        )
-        self.acc2 = Accuracy(
-            task="multiclass", num_classes=config["num_classes"], threshold=0.2
-        )
-        self.acc3 = Accuracy(
-            task="multiclass", num_classes=config["num_classes"], threshold=0.3
-        )
-        self.acc4 = Accuracy(
-            task="multiclass", num_classes=config["num_classes"], threshold=0.4
-        )
-        self.acc5 = Accuracy(
-            task="multiclass", num_classes=config["num_classes"], threshold=0.5
-        )
-        self.dice = DiceScore(
-            num_classes=4, include_background=False, input_format="one-hot"
-        )
-        self.dice_loss = DiceScore(
-            num_classes=4, include_background=False, input_format="one-hot"
-        )
+        self.acc1 = Accuracy(task="multiclass", num_classes=config["num_classes"], threshold=0.1)
+        self.acc2 = Accuracy(task="multiclass", num_classes=config["num_classes"], threshold=0.2)
+        self.acc3 = Accuracy(task="multiclass", num_classes=config["num_classes"], threshold=0.3)
+        self.acc4 = Accuracy(task="multiclass", num_classes=config["num_classes"], threshold=0.4)
+        self.acc5 = Accuracy(task="multiclass", num_classes=config["num_classes"], threshold=0.5)
+        self.dice = DiceScore(num_classes=4, include_background=False, input_format="one-hot")
+        self.dice_loss = DiceScore(num_classes=4, include_background=False, input_format="one-hot")
         self.dice_bg = DiceScore(num_classes=4, include_background=True)
-        self.dice1 = DiceScore(
-            num_classes=4, include_background=False, input_format="one-hot"
-        )
-        self.dice2 = DiceScore(
-            num_classes=4, include_background=False, input_format="one-hot"
-        )
-        self.dice3 = DiceScore(
-            num_classes=4, include_background=False, input_format="one-hot"
-        )
-        self.dice4 = DiceScore(
-            num_classes=4, include_background=False, input_format="one-hot"
-        )
-        self.dice5 = DiceScore(
-            num_classes=4, include_background=False, input_format="one-hot"
-        )
+        self.dice1 = DiceScore(num_classes=4, include_background=False, input_format="one-hot")
+        self.dice2 = DiceScore(num_classes=4, include_background=False, input_format="one-hot")
+        self.dice3 = DiceScore(num_classes=4, include_background=False, input_format="one-hot")
+        self.dice4 = DiceScore(num_classes=4, include_background=False, input_format="one-hot")
+        self.dice5 = DiceScore(num_classes=4, include_background=False, input_format="one-hot")
         self.iou_bg = MeanIoU(num_classes=4, include_background=True)
         self.iou1 = MeanIoU(num_classes=4, include_background=False)
         self.iou2 = MeanIoU(num_classes=4, include_background=False)
@@ -153,25 +125,19 @@ class StrawberryLightning(L.LightningModule):
     def setup(self, stage):
         if self.pca.n_samples_seen_ == 0:
             for batch in tqdm(self.data_loader, desc="PCA fit"):
-                pca_image = (
-                    batch["image"]
-                    .squeeze(0)
-                    .permute(1, 2, 0)
-                    .reshape(-1, self.cube_channels)
-                )
+                pca_image = batch["image"].squeeze(0).permute(1, 2, 0).reshape(-1, self.cube_channels)
                 self.pca.partial_fit(pca_image)
 
     def training_step(self, batch, batch_idx):
         res = self.model.forward(batch["image"])
         pred = torch.softmax(res, dim=0)
 
-        one_hot_gt = torch.nn.functional.one_hot(
-            batch["mask"].type(torch.long), num_classes=self.num_classes
-        ).movedim(-1, 1)
+        one_hot_gt = torch.nn.functional.one_hot(batch["mask"].type(torch.long), num_classes=self.num_classes).movedim(
+            -1, 1
+        )
 
         if (
-            batch["number"][0] + "_" + batch["side"][0] + "_" + batch["day"][0]
-            == "008_3_22"
+            batch["number"][0] + "_" + batch["side"][0] + "_" + batch["day"][0] == "008_3_22"
             and False
             or self.save_imgs
         ):
@@ -185,9 +151,7 @@ class StrawberryLightning(L.LightningModule):
             )
 
             prediction = torch.argmax(res, dim=0, keepdim=True)
-            rgb_pred = torch.zeros((self.image_height, self.image_width, 3)).type(
-                torch.uint8
-            )
+            rgb_pred = torch.zeros((self.image_height, self.image_width, 3)).type(torch.uint8)
             rgb_pred[:, :, 0] = (prediction == 1) * 255  # Red channel
             rgb_pred[:, :, 1] = (prediction == 3) * 255  # Green channel
             rgb_pred[:, :, 2] = (prediction == 2) * 255  # Blue channel
@@ -217,8 +181,7 @@ class StrawberryLightning(L.LightningModule):
                         + batch["day"][0]
                         + ".png",
                         cv.cvtColor(
-                            batch["rgb_image"].squeeze(0).permute(1, 2, 0).cpu().numpy()
-                            * 255,
+                            batch["rgb_image"].squeeze(0).permute(1, 2, 0).cpu().numpy() * 255,
                             cv.COLOR_BGR2RGB,
                         ),
                     )
@@ -274,17 +237,15 @@ class StrawberryLightning(L.LightningModule):
         res = self.model.forward(batch["image"])
         gt_mask = batch["mask"]
         pred = torch.softmax(res, dim=0).unsqueeze(0)
-        one_hot_gt = torch.nn.functional.one_hot(
-            gt_mask.type(torch.long), num_classes=self.num_classes
-        ).movedim(-1, 1)
+        one_hot_gt = torch.nn.functional.one_hot(gt_mask.type(torch.long), num_classes=self.num_classes).movedim(-1, 1)
         loss = GeneralizedDiceLoss(generalize=True)(pred, one_hot_gt).item()
         self.val_loss.append(loss)
 
         prediction = torch.argmax(res, dim=0, keepdim=True)
 
-        one_hot_pred = torch.nn.functional.one_hot(
-            prediction.type(torch.long), num_classes=self.num_classes
-        ).movedim(-1, 1)
+        one_hot_pred = torch.nn.functional.one_hot(prediction.type(torch.long), num_classes=self.num_classes).movedim(
+            -1, 1
+        )
 
         self.dice.update(one_hot_pred, one_hot_gt)
         self.dice_bg.update(one_hot_pred > 0.5, one_hot_gt)
@@ -323,11 +284,7 @@ class StrawberryLightning(L.LightningModule):
             rgb_mask[0] = (gt_mask == 1).float()  # Red channel
             rgb_mask[2] = (gt_mask == 2).float()  # Blue channel
             eq_pca = equalize(
-                (
-                    255.0
-                    * (input_img - input_img.min())
-                    / (input_img.max() - input_img.min())
-                ).to(torch.uint8)
+                (255.0 * (input_img - input_img.min()) / (input_img.max() - input_img.min())).to(torch.uint8)
             )
             name = batch["number"][0] + "_" + batch["side"][0] + "_" + batch["day"][0]
             self.logger.experiment.add_image(
@@ -335,23 +292,13 @@ class StrawberryLightning(L.LightningModule):
                 eq_pred.squeeze(0),
                 global_step=self.global_step,
             )
-            self.logger.experiment.add_image(
-                f"{name}/2_gt_mask", rgb_mask, global_step=self.global_step
-            )
-            self.logger.experiment.add_image(
-                f"{name}/1_pca", eq_pca, global_step=self.global_step
-            )
-            self.logger.experiment.add_image(
-                f"{name}/0_rgb", rgb_img, global_step=self.global_step
-            )
-            self.logger.experiment.add_scalar(
-                f"{name}/loss", loss, global_step=self.global_step
-            )
+            self.logger.experiment.add_image(f"{name}/2_gt_mask", rgb_mask, global_step=self.global_step)
+            self.logger.experiment.add_image(f"{name}/1_pca", eq_pca, global_step=self.global_step)
+            self.logger.experiment.add_image(f"{name}/0_rgb", rgb_img, global_step=self.global_step)
+            self.logger.experiment.add_scalar(f"{name}/loss", loss, global_step=self.global_step)
 
         if self.save_imgs:
-            rgb_pred = torch.zeros((self.image_height, self.image_width, 3)).type(
-                torch.uint8
-            )
+            rgb_pred = torch.zeros((self.image_height, self.image_width, 3)).type(torch.uint8)
             rgb_pred[:, :, 0] = (prediction == 1) * 255  # Red channel
             rgb_pred[:, :, 2] = (prediction == 2) * 255  # Blue channel
             rgb_pred = rgb_pred.detach().cpu().numpy()
@@ -384,11 +331,7 @@ class StrawberryLightning(L.LightningModule):
                         + batch["day"][0]
                         + ".png",
                         cv.cvtColor(
-                            batch["rgb_image"]
-                            .squeeze(0)
-                            .permute(1, 2, 0)
-                            .cpu()
-                            .numpy(),
+                            batch["rgb_image"].squeeze(0).permute(1, 2, 0).cpu().numpy(),
                             cv.COLOR_BGR2RGB,
                         ),
                     )
@@ -401,9 +344,7 @@ class StrawberryLightning(L.LightningModule):
                         + "_"
                         + batch["day"][0]
                         + "_mask.png",
-                        cv.cvtColor(
-                            rgb_mask.permute(1, 2, 0).cpu().numpy(), cv.COLOR_BGR2RGB
-                        ),
+                        cv.cvtColor(rgb_mask.permute(1, 2, 0).cpu().numpy(), cv.COLOR_BGR2RGB),
                     )
 
         return prediction  # res
@@ -418,9 +359,7 @@ class StrawberryLightning(L.LightningModule):
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
-                "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, "min", patience=2
-                ),
+                "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=2),
                 "monitor": "train/epoch_loss",
                 "frequency": 1,
                 "interval": "epoch",
@@ -455,9 +394,7 @@ class StrawberryLightning(L.LightningModule):
 
         self.log("val_ROC/AUROC", self.auroc, on_epoch=True)
         roc_fig, _ = self.roc.plot(score=True)
-        self.logger.experiment.add_figure(
-            "curve/ROC", roc_fig, global_step=self.global_step
-        )
+        self.logger.experiment.add_figure("curve/ROC", roc_fig, global_step=self.global_step)
         plt.close(roc_fig)
         self.roc.reset()
 

@@ -36,23 +36,16 @@ class StrawberryDataset(Dataset):
         for path in Path(self.root_dir).glob("*.cu3s"):
             name_splits = path.name.split("_")
             if strawberry_range[0] <= int(name_splits[1]) <= strawberry_range[1]:
-                if (
-                    int(name_splits[2]) not in sides_to_exclude
-                    and int(name_splits[3]) not in days_to_exclude
-                ):
+                if int(name_splits[2]) not in sides_to_exclude and int(name_splits[3]) not in days_to_exclude:
                     self.file_paths.append(path)
 
         self.images = [
-            [file_path, index]
-            for file_path in self.file_paths
-            for index in range(len(cuvis.SessionFile(file_path)))
+            [file_path, index] for file_path in self.file_paths for index in range(len(cuvis.SessionFile(file_path)))
         ]
         self.masks = {}
         for file_path in self.file_paths:
             self.masks[file_path] = (
-                file_path.parent
-                / "masks"
-                / (file_path.stem + "_0000_Strawberry_swir_fasterRGB_mask.npy")
+                file_path.parent / "masks" / (file_path.stem + "_0000_Strawberry_swir_fasterRGB_mask.npy")
             )
         self.mean = mean
         self.std = std
@@ -89,9 +82,7 @@ class StrawberryDataset(Dataset):
             mesu = self.proc.apply(mesu)
         cube = torch.from_numpy(mesu.data["cube"].array).to("cuda")
         cube = cube.permute(2, 0, 1)  # transpose from H x W x C to C x H x W for torch
-        cube = (
-            cube / 10000
-        )  # 100% reflectance equals 10000, we divide by that to make 100% reflectance equal 1
+        cube = cube / 10000  # 100% reflectance equals 10000, we divide by that to make 100% reflectance equal 1
         if self.normalize:
             cube = torchvision.transforms.Normalize(mean=self.mean, std=self.std)(cube)
         if cube.shape[1] != self.height or cube.shape[2] != self.width:

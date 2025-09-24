@@ -41,6 +41,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["cuvisai_examples"]
 
+[tool.ruff]
+line-length = 120
+
 [tool.ruff.lint]
 select = ["I"]
 

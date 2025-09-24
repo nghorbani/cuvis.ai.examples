@@ -80,8 +80,7 @@ class EfficientADCuvisDataset(Dataset):
                 os.path.join(root, file)
                 for root, dirs, files in os.walk(imagenet_dir)
                 for file in files
-                if file.lower().endswith(self.imagenet_file_ending)
-                and mode in os.path.join(root, file)
+                if file.lower().endswith(self.imagenet_file_ending) and mode in os.path.join(root, file)
             ]
         if max_data_load > 0:
             logger.warning(
@@ -89,9 +88,7 @@ class EfficientADCuvisDataset(Dataset):
             )
             self.imgnet_files = self.imgnet_files[:max_data_load]
 
-        logger.info(
-            f"Found {len(self.images)} {mode} images and {len(self.imgnet_files)} ImageNet images"
-        )
+        logger.info(f"Found {len(self.images)} {mode} images and {len(self.imgnet_files)} ImageNet images")
 
         if mode == "test":
             self.gt = {}
@@ -108,12 +105,8 @@ class EfficientADCuvisDataset(Dataset):
                 v2.RandomVerticalFlip(p=0.5),
                 v2.RandomChoice(
                     [
-                        v2.Lambda(
-                            partial(torch.rot90, k=0, dims=(-2, -1))
-                        ),  # rotate 0 deg
-                        v2.Lambda(
-                            partial(torch.rot90, k=1, dims=(-2, -1))
-                        ),  # rotate 90 deg
+                        v2.Lambda(partial(torch.rot90, k=0, dims=(-2, -1))),  # rotate 0 deg
+                        v2.Lambda(partial(torch.rot90, k=1, dims=(-2, -1))),  # rotate 90 deg
                     ]
                 ),
             ]
@@ -149,24 +142,16 @@ class EfficientADCuvisDataset(Dataset):
         #     mesu = self.proc.apply(mesu)
         # cube = mesu.data["cube"].array
         cube = np.load(file_path)["arr_0"]
-        cube = cube[
-            300:-300, 300:-300, :
-        ]  # cut the border of the image to exclude the tray borders
-        cube = np.transpose(
-            cube, (2, 0, 1)
-        )  # transpose from H x W x C to C x H x W for torch
+        cube = cube[300:-300, 300:-300, :]  # cut the border of the image to exclude the tray borders
+        cube = np.transpose(cube, (2, 0, 1))  # transpose from H x W x C to C x H x W for torch
         cube = torch.from_numpy(cube)
         if self.white_percentage != 1:
             cube = cube * self.white_percentage
-        cube = (
-            cube / 10000
-        )  # 100% reflectance equals 10.000, we divide by that to make 100% reflectance equal 1
+        cube = cube / 10000  # 100% reflectance equals 10.000, we divide by that to make 100% reflectance equal 1
         if self.normalize:
             cube = torchvision.transforms.Normalize(mean=self.mean, std=self.std)(cube)
         if cube.shape[1] > self.max_img_shape or cube.shape[2] > self.max_img_shape:
-            cube = torchvision.transforms.Resize(
-                size=self.max_img_shape - 1, max_size=self.max_img_shape
-            )(cube)
+            cube = torchvision.transforms.Resize(size=self.max_img_shape - 1, max_size=self.max_img_shape)(cube)
         if self.channels == "RGB":
             cube = cube[:3, :, :]
         elif self.channels == "SWIR":
@@ -176,9 +161,7 @@ class EfficientADCuvisDataset(Dataset):
                 imgnet_img = np.load(random.choice(self.imgnet_files))
             else:
                 imgnet_img = np.array(cv.imread(random.choice(self.imgnet_files)))
-            imgnet_img = np.transpose(
-                imgnet_img, (2, 0, 1)
-            )  # transpose from H x W x C to C x H x W for torch
+            imgnet_img = np.transpose(imgnet_img, (2, 0, 1))  # transpose from H x W x C to C x H x W for torch
             imgnet_img = (imgnet_img / 255).astype(np.float32)
             imgnet_img = torch.from_numpy(imgnet_img)
             if (
@@ -187,9 +170,7 @@ class EfficientADCuvisDataset(Dataset):
                 or imgnet_img.shape[1] < 256
                 or imgnet_img.shape[2] < 256
             ):
-                imgnet_img = torchvision.transforms.Resize(size=500, max_size=1000)(
-                    imgnet_img
-                )
+                imgnet_img = torchvision.transforms.Resize(size=500, max_size=1000)(imgnet_img)
 
             return self.transform({"image": cube, "imgnet_img": imgnet_img})
         else:
@@ -204,9 +185,7 @@ class EfficientADCuvisDataset(Dataset):
                 defect = Path(file_path).parent.name
                 if self.gt[file_path] and os.path.exists(self.gt[file_path]):
                     # logger.info(f"Loading GT data for cube: {file_path}")
-                    mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[
-                        300:-300, 300:-300
-                    ]  # Crop the mask
+                    mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[300:-300, 300:-300]  # Crop the mask
                     mask = torch.from_numpy(mask)
                     mask = mask.unsqueeze(0)
                     mask_out = torchvision.transforms.Resize(

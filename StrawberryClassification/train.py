@@ -67,17 +67,13 @@ def main():
 
     checkpoint_callback = ModelCheckpoint(
         monitor="train/epoch_loss",  # Metric to monitor
-        dirpath=config["ckpt_dir"]
-        + "/"
-        + config["name"],  # Directory to save checkpoints
+        dirpath=config["ckpt_dir"] + "/" + config["name"],  # Directory to save checkpoints
         filename=config["best_ckpt"],  # Filename format
         save_top_k=-1,  # Save all checkpoints
         mode="min",
         verbose=True,
     )
-    logger = TensorBoardLogger(
-        save_dir=config["logger_dir"], log_graph=True, name=config["name"]
-    )
+    logger = TensorBoardLogger(save_dir=config["logger_dir"], log_graph=True, name=config["name"])
 
     model = StrawberryLightning(
         config,

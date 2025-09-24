@@ -47,17 +47,13 @@ class PerPixelAECuvisDataSet(Dataset):
         print(f"Found: {len(self.file_paths)} filepaths")
         self.in_channels = in_channels
         self.images = [
-            [file_path, index]
-            for file_path in self.file_paths
-            for index in range(len(cuvis.SessionFile(file_path)))
+            [file_path, index] for file_path in self.file_paths for index in range(len(cuvis.SessionFile(file_path)))
         ]
         if mode == "test":
             self.gt = {}
             for file_path in self.file_paths:
                 if "_ok_ok_" not in file_path:
-                    self.gt[file_path] = file_path.replace(
-                        ".cu3s", "_0_RGB_mask.png"
-                    ).replace("test", "ground_truth")
+                    self.gt[file_path] = file_path.replace(".cu3s", "_0_RGB_mask.png").replace("test", "ground_truth")
 
         self.transform = v2.Compose(
             [
@@ -67,12 +63,8 @@ class PerPixelAECuvisDataSet(Dataset):
                 v2.RandomVerticalFlip(p=0.5),
                 v2.RandomChoice(
                     [
-                        v2.Lambda(
-                            partial(torch.rot90, k=0, dims=(-2, -1))
-                        ),  # rotate 0 deg
-                        v2.Lambda(
-                            partial(torch.rot90, k=1, dims=(-2, -1))
-                        ),  # rotate 90 deg
+                        v2.Lambda(partial(torch.rot90, k=0, dims=(-2, -1))),  # rotate 0 deg
+                        v2.Lambda(partial(torch.rot90, k=1, dims=(-2, -1))),  # rotate 90 deg
                     ]
                 ),
             ]
@@ -107,24 +99,16 @@ class PerPixelAECuvisDataSet(Dataset):
 
             mesu = self.proc.apply(mesu)
         cube = mesu.data["cube"].array
-        cube = cube[
-            300:-300, 300:-300, :
-        ]  # cut the border of the image to exclude the tray borders
-        cube = np.transpose(
-            cube, (2, 0, 1)
-        )  # transpose from H x W x C to C x H x W for torch
+        cube = cube[300:-300, 300:-300, :]  # cut the border of the image to exclude the tray borders
+        cube = np.transpose(cube, (2, 0, 1))  # transpose from H x W x C to C x H x W for torch
         cube = torch.from_numpy(cube)
         if self.white_percentage != 1:
             cube = cube * self.white_percentage
-        cube = (
-            cube / 10000
-        )  # 100% reflectance equals 10.000, we divide by that to make 100% reflectance equal 1
+        cube = cube / 10000  # 100% reflectance equals 10.000, we divide by that to make 100% reflectance equal 1
         if self.normalize:
             cube = torchvision.transforms.Normalize(mean=self.mean, std=self.std)(cube)
         if cube.shape[1] > self.max_img_shape or cube.shape[2] > self.max_img_shape:
-            cube = torchvision.transforms.Resize(
-                size=self.max_img_shape - 1, max_size=self.max_img_shape
-            )(cube)
+            cube = torchvision.transforms.Resize(size=self.max_img_shape - 1, max_size=self.max_img_shape)(cube)
         if self.channels == "RGB":
             cube = cube[:3, :, :]
         elif self.channels == "SWIR":
@@ -132,16 +116,12 @@ class PerPixelAECuvisDataSet(Dataset):
         if "_ok_ok_" in file_path and self.mode == "train":
             channels, width, height = cube.shape
             datacube_flat = cube.view(channels, -1)
-            datacube_2d = datacube_flat.permute(
-                1, 0
-            )  # This flattens the datacube into a long list of pixels
+            datacube_2d = datacube_flat.permute(1, 0)  # This flattens the datacube into a long list of pixels
             return datacube_2d, datacube_2d
         else:
             defect = Path(file_path).parent.name
             if os.path.exists(self.gt[file_path]):
-                mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[
-                    300:-300, 300:-300
-                ]  # Crop the mask
+                mask = cv.imread(self.gt[file_path], cv.IMREAD_GRAYSCALE)[300:-300, 300:-300]  # Crop the mask
                 mask = torch.from_numpy(mask)
                 mask = mask.unsqueeze(0)
                 mask_out = torchvision.transforms.Resize(
@@ -153,9 +133,7 @@ class PerPixelAECuvisDataSet(Dataset):
                 mask_out = torch.zeros(cube.shape[-2:], dtype=torch.bool)
             channels, width, height = cube.shape
             datacube_flat = cube.view(channels, -1)
-            datacube_2d = datacube_flat.permute(
-                1, 0
-            )  # This flattens the datacube into a long list of pixels
+            datacube_2d = datacube_flat.permute(1, 0)  # This flattens the datacube into a long list of pixels
             return {
                 "image": datacube_2d,
                 "dims": cube.shape,

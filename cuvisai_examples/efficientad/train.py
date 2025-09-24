@@ -93,12 +93,8 @@ class EfficientAD_lightning(L.LightningModule):
         # Use attributes for thresholded metrics to avoid device issues
         for t in self.thresholds:
             setattr(self, f"acc_at_{t}", Accuracy(task="binary", threshold=t))
-            setattr(
-                self, f"dice_at_{t}", DiceScore(num_classes=2, include_background=False)
-            )
-            setattr(
-                self, f"iou_at_{t}", MeanIoU(num_classes=2, include_background=False)
-            )
+            setattr(self, f"dice_at_{t}", DiceScore(num_classes=2, include_background=False))
+            setattr(self, f"iou_at_{t}", MeanIoU(num_classes=2, include_background=False))
         self.dice_bg = DiceScore(num_classes=2, include_background=True)
         self.iou_bg = MeanIoU(num_classes=2, include_background=True)
         self.has_masks = False
@@ -106,9 +102,7 @@ class EfficientAD_lightning(L.LightningModule):
 
     def training_step(self, batch, batch_idx):
         """Train the model for one step."""
-        loss_st, loss_ae, loss_stae = self.model.forward(
-            batch["image"], batch["imgnet_img"]
-        )
+        loss_st, loss_ae, loss_stae = self.model.forward(batch["image"], batch["imgnet_img"])
         loss_total = loss_st + loss_ae + loss_stae
         self.log("train/st", loss_st.item(), on_epoch=True, prog_bar=True)
         self.log("train/ae", loss_ae.item(), on_epoch=True, prog_bar=True)
@@ -122,9 +116,7 @@ class EfficientAD_lightning(L.LightningModule):
         map_norm_quantiles = self.map_norm_quantiles(self.trainer.val_dataloaders)
         self.model.quantiles.update(map_norm_quantiles)
 
-    def validation_step(
-        self, batch: dict[str, str | torch.Tensor], batch_idx, *args, **kwargs
-    ):
+    def validation_step(self, batch: dict[str, str | torch.Tensor], batch_idx, *args, **kwargs):
         """Perform the validation step of EfficientAd returns anomaly maps for the input image batch.
 
         Args:
@@ -161,31 +153,22 @@ class EfficientAD_lightning(L.LightningModule):
             self.has_masks = True
 
             # Update background metrics
-            pred_bg_formatted, target_bg_formatted = self._format_for_dice_score(
-                amap > 0.5, gt_mask
-            )
+            pred_bg_formatted, target_bg_formatted = self._format_for_dice_score(amap > 0.5, gt_mask)
             self.dice_bg.update(pred_bg_formatted, target_bg_formatted)
             self.iou_bg.update(pred_bg_formatted, target_bg_formatted)
 
             # Update attribute-based segmentation metrics
             for threshold in self.thresholds:
-                pred_formatted, target_formatted = self._format_for_dice_score(
-                    amap > threshold, gt_mask
-                )
-                getattr(self, f"dice_at_{threshold}").update(
-                    pred_formatted, target_formatted
-                )
-                getattr(self, f"iou_at_{threshold}").update(
-                    pred_formatted, target_formatted
-                )
+                pred_formatted, target_formatted = self._format_for_dice_score(amap > threshold, gt_mask)
+                getattr(self, f"dice_at_{threshold}").update(pred_formatted, target_formatted)
+                getattr(self, f"iou_at_{threshold}").update(pred_formatted, target_formatted)
 
         # Image Logging
         image = batch["image"].detach().squeeze().cpu()
         pred = amap.detach().squeeze().cpu()
         # reverte the normalization of the images to display the input image correctly
         image = np.transpose(
-            np.transpose(image, (1, 2, 0)) * np.array(self.config["std"])
-            + np.array(self.config["mean"]),
+            np.transpose(image, (1, 2, 0)) * np.array(self.config["std"]) + np.array(self.config["mean"]),
             (2, 0, 1),
         )
         if (
@@ -195,16 +178,10 @@ class EfficientAD_lightning(L.LightningModule):
             and batch["defect"] not in self.images_logged
         ):  # and gt_mask.max() > 0:  # Just once
             if self.in_channels == 6:
-                self.logger.experiment.add_image(
-                    f"image{batch_idx}_{batch['defect']}/0_rgb", image[:3].numpy()
-                )
-                self.logger.experiment.add_image(
-                    f"image{batch_idx}_{batch['defect']}/1_ir", image[3:].numpy()
-                )
+                self.logger.experiment.add_image(f"image{batch_idx}_{batch['defect']}/0_rgb", image[:3].numpy())
+                self.logger.experiment.add_image(f"image{batch_idx}_{batch['defect']}/1_ir", image[3:].numpy())
             else:
-                self.logger.experiment.add_image(
-                    f"image{batch_idx}_{batch['defect']}/0_rgb", image.numpy()
-                )
+                self.logger.experiment.add_image(f"image{batch_idx}_{batch['defect']}/0_rgb", image.numpy())
         if (
             self.current_epoch % 2 == 0
             and label.item() == 1
@@ -215,24 +192,14 @@ class EfficientAD_lightning(L.LightningModule):
             gt_mask = gt_mask.squeeze().cpu()
 
             masks_only = {
-                f"image{batch_idx}_{batch['defect']}/mask_t/t={t:.1f}": (pred > t)
-                .unsqueeze(0)
-                .numpy()
+                f"image{batch_idx}_{batch['defect']}/mask_t/t={t:.1f}": (pred > t).unsqueeze(0).numpy()
                 for t in [0.1, 0.2, 0.3, 0.4, 0.5]
             }
             masks_quant = {
-                f"image{batch_idx}_{batch['defect']}/mask_q/q={q:.2f}": (
-                    pred > pred.quantile(q)
-                )
-                .unsqueeze(0)
-                .numpy()
+                f"image{batch_idx}_{batch['defect']}/mask_q/q={q:.2f}": (pred > pred.quantile(q)).unsqueeze(0).numpy()
                 for q in [0.9, 0.95, 0.98, 0.99]
             }
-            eq_map = equalize(
-                (255.0 * (pred[None] - pred.min()) / (pred.max() - pred.min())).to(
-                    torch.uint8
-                )
-            )
+            eq_map = equalize((255.0 * (pred[None] - pred.min()) / (pred.max() - pred.min())).to(torch.uint8))
             self.logger.experiment.add_image(
                 f"image{batch_idx}_{batch['defect']}/pred_equalized",
                 eq_map.numpy(),
@@ -275,13 +242,9 @@ class EfficientAD_lightning(L.LightningModule):
             metric = getattr(self, f"acc_at_{threshold}")
             self.log(f"val_im/Acc_{threshold}", metric, on_epoch=True)
         roc_fig, _ = self.roc.plot(score=True)
-        self.logger.experiment.add_figure(
-            "curve/ROC", roc_fig, global_step=self.global_step
-        )
+        self.logger.experiment.add_figure("curve/ROC", roc_fig, global_step=self.global_step)
         prc_fig, _ = self.prc.plot(score=True)
-        self.logger.experiment.add_figure(
-            "curve/PrecisionRecall", prc_fig, global_step=self.global_step
-        )
+        self.logger.experiment.add_figure("curve/PrecisionRecall", prc_fig, global_step=self.global_step)
         plt.close(roc_fig)
         plt.close(prc_fig)
         self.roc.reset()
@@ -320,9 +283,7 @@ class EfficientAD_lightning(L.LightningModule):
         ):
             for img, label in zip(batch["image"], batch["label"], strict=True):
                 if label == 0:  # only use good images of validation set!
-                    output = self.model(
-                        img.to(self.device), normalize=False, return_all_maps=True
-                    )
+                    output = self.model(img.to(self.device), normalize=False, return_all_maps=True)
                     map_st = output["map_st"]
                     map_ae = output["map_ae"]
                     maps_st.append(map_st)
@@ -340,9 +301,7 @@ class EfficientAD_lightning(L.LightningModule):
         )
         return optimizer
 
-    def _format_for_dice_score(
-        self, pred: torch.Tensor, target: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def _format_for_dice_score(self, pred: torch.Tensor, target: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Format tensors for DiceScore metric.
 
         DiceScore expects binary masks with proper shape for binary segmentation.
@@ -362,9 +321,7 @@ class EfficientAD_lightning(L.LightningModule):
 
         return pred_formatted, target_formatted
 
-    def _get_quantiles_of_maps(
-        self, maps: list[torch.Tensor]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def _get_quantiles_of_maps(self, maps: list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculate 90% and 99.5% quantiles of the given anomaly maps.
 
         If the total number of elements in the given maps is larger than 16777216
@@ -415,14 +372,14 @@ class EfficientAD_lightning(L.LightningModule):
         was_training = self.model.teacher.training
         self.model.teacher.eval()
 
-        channel_sum = None     # (C,)
-        channel_sum_sqr = None   # (C,)
-        count = 0              # scalar
+        channel_sum = None  # (C,)
+        channel_sum_sqr = None  # (C,)
+        count = 0  # scalar
 
         for batch in tqdm(dataloader, desc="Calculate teacher channel mean & std", position=0, leave=True):
             imgs = batch["image"].to(self.device, non_blocking=True)
-            y = self.model.teacher(imgs)            # (B, C, H, W)
-            y = y.float()                           # ensure fp32 for stable squares
+            y = self.model.teacher(imgs)  # (B, C, H, W)
+            y = y.float()  # ensure fp32 for stable squares
 
             # initialize accumulators
             if channel_sum is None:
@@ -431,9 +388,9 @@ class EfficientAD_lightning(L.LightningModule):
                 channel_sum_sqr = torch.zeros(num_channels, dtype=torch.float64, device=y.device)
 
             # per-batch reductions
-            channel_sum   += y.sum(dim=(0, 2, 3)).to(torch.float64)
+            channel_sum += y.sum(dim=(0, 2, 3)).to(torch.float64)
             channel_sum_sqr += (y * y).sum(dim=(0, 2, 3)).to(torch.float64)
-            count         += y.shape[0] * y.shape[2] * y.shape[3]
+            count += y.shape[0] * y.shape[2] * y.shape[3]
 
         if was_training:
             self.model.teacher.train()
@@ -442,13 +399,13 @@ class EfficientAD_lightning(L.LightningModule):
             raise ValueError("Empty dataloader: no images to compute statistics.")
 
         # mean and std per channel
-        channel_mean = (channel_sum / count).to(torch.float32)                 # (C,)
-        channel_var  = (channel_sum_sqr / count - channel_mean.double()**2).clamp_min(1e-12)
-        channel_std  = channel_var.sqrt().to(torch.float32)                    # (C,)
+        channel_mean = (channel_sum / count).to(torch.float32)  # (C,)
+        channel_var = (channel_sum_sqr / count - channel_mean.double() ** 2).clamp_min(1e-12)
+        channel_std = channel_var.sqrt().to(torch.float32)  # (C,)
 
         # reshape to (1, C, 1, 1)
         channel_mean = channel_mean[None, :, None, None]
-        channel_std  = channel_std[None,  :, None, None]
+        channel_std = channel_std[None, :, None, None]
 
         return {"mean": channel_mean, "std": channel_std}
 
@@ -520,22 +477,16 @@ def train(config):
     # create custom callback to save a model checkpoint for every epoch
     checkpoint_callback = ModelCheckpoint(
         monitor="val_im/AU-ROC",  # Metric to monitor
-        dirpath=config["ckpt_dir"]
-        + "/"
-        + config["name"],  # Directory to save checkpoints
+        dirpath=config["ckpt_dir"] + "/" + config["name"],  # Directory to save checkpoints
         filename=config["name"] + "-{epoch:02d}-{val_im/AU-ROC:.2f}",  # Filename format
         save_top_k=-1,  # Save all checkpoints
         mode="max",
         verbose=True,
     )
 
-    logger = TensorBoardLogger(
-        save_dir=config["logger_dir"], log_graph=True, name=config["name"]
-    )
+    logger = TensorBoardLogger(save_dir=config["logger_dir"], log_graph=True, name=config["name"])
     if "ckpt" in config:
-        model = EfficientAD_lightning.load_from_checkpoint(
-            config["ckpt"], config=config
-        )
+        model = EfficientAD_lightning.load_from_checkpoint(config["ckpt"], config=config)
     else:
         model = EfficientAD_lightning(config)
     trainer = L.Trainer(

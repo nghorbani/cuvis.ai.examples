@@ -82,9 +82,7 @@ class FreshTwin2DUNet(nn.Module):
         pca_image = x.squeeze(0).permute(1, 2, 0).reshape(-1, x.shape[1])
         pca_image = self.pca.transform(pca_image)
         pca_image = (
-            pca_image.reshape(1, x.shape[2], x.shape[3], self.in_channels)
-            .permute(0, 3, 1, 2)
-            .type(torch.float32)
+            pca_image.reshape(1, x.shape[2], x.shape[3], self.in_channels).permute(0, 3, 1, 2).type(torch.float32)
         )
 
         c1 = self.conv1(pca_image)
