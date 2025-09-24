@@ -62,25 +62,20 @@ class EfficientAD_lightning(L.LightningModule):
         self.weight_decay = config.get("weight_decay", 1e-5)
         self.in_channels = config["model"]["in_channels"]
         self.model = EfficientAdModel(
-            384,
+            teacher_out_channels=384,
             in_channels=self.in_channels,
             model_size=config["model"]["model_size"],
             use_imgnet_penalty=config["model"]["use_imgnet_penalty"],
         )
         self.student = self.model.student
-        self.student = self.student.cuda()
         self.teacher = self.model.teacher
-        self.teacher = self.teacher.cuda()
+        self.autoencoder = self.model.autoencoder
+
         self.load_pretrain_teacher()
-        self.ae = self.model.ae
-        self.labels = []
-        self.scores = []
-        self.ae = self.ae.cuda()
-        self.channel_mean, self.channel_std = None, None
-        self.batch_size = config["model"]["batch_size"]
+
         if config["seed"] != "random":
             self.set_seed(config["seed"])
-        self.training = True
+        # self.training = True
         self.save_hyperparameters()
         # Metrics
         self.auroc = AUROC(task="binary")
@@ -98,7 +93,17 @@ class EfficientAD_lightning(L.LightningModule):
         self.dice_bg = DiceScore(num_classes=2, include_background=True)
         self.iou_bg = MeanIoU(num_classes=2, include_background=True)
         self.has_masks = False
+
+        self.labels = []
+        self.scores = []
         self.images_logged = []
+
+    # ---- Device-aware, called once per stage ----
+    def setup(self, stage: str):
+        self.teacher.eval()
+
+        for p in self.teacher.parameters():
+            p.requires_grad = False
 
     def training_step(self, batch, batch_idx):
         """Train the model for one step."""
@@ -113,8 +118,12 @@ class EfficientAD_lightning(L.LightningModule):
 
     def on_validation_start(self) -> None:
         """Calculate the feature map quantiles of the validation dataset and push to the model."""
+        self.teacher.eval()
         map_norm_quantiles = self.map_norm_quantiles(self.trainer.val_dataloaders)
         self.model.quantiles.update(map_norm_quantiles)
+
+    def on_test_start(self):
+        self.teacher.eval()
 
     def validation_step(self, batch: dict[str, str | torch.Tensor], batch_idx, *args, **kwargs):
         """Perform the validation step of EfficientAd returns anomaly maps for the input image batch.
@@ -295,7 +304,7 @@ class EfficientAD_lightning(L.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
-            itertools.chain(self.student.parameters(), self.ae.parameters()),
+            itertools.chain(self.student.parameters(), self.autoencoder.parameters()),
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
@@ -341,11 +350,16 @@ class EfficientAD_lightning(L.LightningModule):
         return qa, qb
 
     def load_pretrain_teacher(self):
-        self.teacher.load_state_dict(torch.load(self.config["model"]["checkpoints"]))
-        self.teacher = self.teacher.cuda()
-        self.teacher.eval()
-        for parameters in self.teacher.parameters():
-            parameters.requires_grad = False
+        # map_location="cpu" avoids device mismatch at load time
+        state = torch.load(self.config["model"]["checkpoints"], map_location="cpu")
+        self.teacher.load_state_dict(state)
+
+        # Don’t move to CUDA manually; Lightning will do model.to(device).
+        # Don’t set eval here permanently; do it in forward/hooks.
+
+        # Freeze params
+        for p in self.teacher.parameters():
+            p.requires_grad = False
 
     def set_seed(self, seed):
         torch.manual_seed(seed)
@@ -358,9 +372,14 @@ class EfficientAD_lightning(L.LightningModule):
         res["label"] = image["label"]
         return res
 
+    def on_train_epoch_start(self):
+        self.teacher.eval()
+
     def on_train_start(self) -> None:
+        self.teacher.eval()
+
         channel_mean_std = self.teacher_channel_mean_std(self.trainer.train_dataloader)
-        self.model.mean_std.update(channel_mean_std)
+        self.model.set_teacher_stats(channel_mean_std["mean"], channel_mean_std["std"])
 
     @torch.no_grad()
     def teacher_channel_mean_std(self, dataloader: DataLoader) -> dict[str, torch.Tensor]:
@@ -369,8 +388,8 @@ class EfficientAD_lightning(L.LightningModule):
         Returns:
             {"mean": (1, C, 1, 1), "std": (1, C, 1, 1)}  on self.device
         """
-        was_training = self.model.teacher.training
-        self.model.teacher.eval()
+        # teacher should always be in eval mode
+        self.teacher.eval()
 
         channel_sum = None  # (C,)
         channel_sum_sqr = None  # (C,)
@@ -391,9 +410,6 @@ class EfficientAD_lightning(L.LightningModule):
             channel_sum += y.sum(dim=(0, 2, 3)).to(torch.float64)
             channel_sum_sqr += (y * y).sum(dim=(0, 2, 3)).to(torch.float64)
             count += y.shape[0] * y.shape[2] * y.shape[3]
-
-        if was_training:
-            self.model.teacher.train()
 
         if count == 0:
             raise ValueError("Empty dataloader: no images to compute statistics.")

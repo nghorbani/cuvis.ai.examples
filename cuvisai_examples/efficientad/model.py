@@ -333,7 +333,9 @@ class EfficientAdModel(nn.Module):
             msg = f"Unknown model size {model_size}"
             raise ValueError(msg)
 
-        self.ae: AutoEncoder = AutoEncoder(out_channels=teacher_out_channels, padding=padding, in_channels=in_channels)
+        self.autoencoder: AutoEncoder = AutoEncoder(
+            out_channels=teacher_out_channels, padding=padding, in_channels=in_channels
+        )
         self.teacher_out_channels: int = teacher_out_channels
 
         # self.mean_std: nn.ParameterDict = nn.ParameterDict(
@@ -369,6 +371,18 @@ class EfficientAdModel(nn.Module):
         self.register_buffer("qb_ae", torch.tensor(0.0, dtype=torch.float32), persistent=False)
 
         self.use_imgnet_penalty = use_imgnet_penalty
+
+    @torch.no_grad()
+    def set_teacher_stats(self, mean, std):
+        self.teacher_mean.copy_(mean.to(self.teacher_mean.dtype).to(self.teacher_mean.device))
+        self.teacher_std.copy_(std.to(self.teacher_std.dtype).to(self.teacher_std.device).clamp_min(1e-6))
+
+    @torch.no_grad()
+    def set_quantiles(self, qa_st, qb_st, qa_ae, qb_ae):
+        self.qa_st.fill_(float(qa_st))
+        self.qb_st.fill_(float(qb_st))
+        self.qa_ae.fill_(float(qa_ae))
+        self.qb_ae.fill_(float(qb_ae))
 
     @staticmethod
     def is_set(p_value) -> bool:
@@ -411,6 +425,7 @@ class EfficientAdModel(nn.Module):
             )
 
         with torch.no_grad():
+            self.teacher.eval()
             teacher_output = self.teacher(batch)
             if mean_std_set:
                 teacher_output = (teacher_output - self.teacher_mean) / self.teacher_std
@@ -432,7 +447,7 @@ class EfficientAdModel(nn.Module):
 
             # Autoencoder and Student AE Loss
             aug_img = batch
-            ae_output_aug = self.ae(aug_img, image_size)
+            ae_output_aug = self.autoencoder(aug_img, image_size)
 
             with torch.no_grad():
                 teacher_output_aug = self.teacher(aug_img)
@@ -450,7 +465,7 @@ class EfficientAdModel(nn.Module):
 
         # Eval mode.
         with torch.no_grad():
-            ae_output = self.ae(batch, image_size)
+            ae_output = self.autoencoder(batch, image_size)
 
             map_st = torch.mean(distance_st, dim=1, keepdim=True)
             map_stae = torch.mean(
