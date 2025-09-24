@@ -3,11 +3,13 @@ Test script for the refactored data pipeline using pytest.
 This verifies that the new dataset classes work correctly.
 """
 
+from pathlib import Path
+
+import numpy as np
 import pytest
 import torch
-import numpy as np
-from pathlib import Path
-from cuvisai_examples.efficientad.data import CubeDataset, ImageNetDataset, EfficientADCuvisDataset
+
+from cuvisai_examples.efficientad.data import CubeDataset, EfficientADCuvisDataset, ImageNetDataset
 from cuvisai_examples.efficientad.model import EfficientAdModel
 
 
