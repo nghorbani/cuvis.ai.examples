@@ -30,6 +30,7 @@ import os
 from pathlib import Path
 import random
 
+import albumentations as A
 import cv2 as cv
 from loguru import logger
 import numpy as np
@@ -243,6 +244,21 @@ class ImageNetDataset(Dataset):
         return self[idx]
 
 
+class AlbumentationsTensorWrapper:
+    def __init__(self, aug):
+        self.aug = aug
+
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        # x: C×H×W float tensor
+        assert x.dim() == 3, "Expected CHW tensor"
+        c, h, w = x.shape
+        # Move to CPU numpy for Albumentations (H×W×C)
+        np_img = x.permute(1, 2, 0).detach().cpu().numpy().astype(np.float32)
+        out = self.aug(image=np_img)["image"]
+        out_t = torch.from_numpy(out).permute(2, 0, 1).to(x.device).type_as(x)
+        return out_t
+
+
 class EfficientADCuvisDataset(Dataset):
     """
     Combined dataset that uses CubeDataset and ImageNetDataset.
@@ -320,8 +336,19 @@ class EfficientADCuvisDataset(Dataset):
                 ]
             )
 
-            # Color augmentation for AE branch
-            self.perceptual_transform = v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05)
+            # Color augmentation for AE branch (Albumentations - multi-channel safe)
+            self.perceptual_transform = AlbumentationsTensorWrapper(
+                A.Compose(
+                    [
+                        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.7),
+                        A.RandomGamma(gamma_limit=(90, 110), p=0.5),
+                        A.MultiplicativeNoise(multiplier=(0.9, 1.1), per_channel=True, p=0.5),
+                        A.GaussNoise(var_limit=(1e-5, 5e-4), mean=0.0, p=0.3),
+                        A.CoarseDropout(max_holes=2, max_height=0.1, max_width=0.1, fill_value=0.0, p=0.2),
+                    ],
+                    p=1.0,
+                )
+            )
 
     def __len__(self):
         return len(self.cube_dataset)

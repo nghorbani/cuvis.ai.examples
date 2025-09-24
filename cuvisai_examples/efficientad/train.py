@@ -122,7 +122,13 @@ class EfficientAD_lightning(L.LightningModule):
         """Calculate the feature map quantiles of the validation dataset and push to the model."""
         self.teacher.eval()
         map_norm_quantiles = self.map_norm_quantiles(self.trainer.val_dataloaders)
-        self.model.quantiles.update(map_norm_quantiles)
+        # Model exposes set_quantiles(...) — use it to set computed quantiles.
+        self.model.set_quantiles(
+            map_norm_quantiles["qa_st"],
+            map_norm_quantiles["qb_st"],
+            map_norm_quantiles["qa_ae"],
+            map_norm_quantiles["qb_ae"],
+        )
 
     def on_test_start(self):
         self.teacher.eval()
@@ -449,7 +455,7 @@ def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str, required=True)
     parser.add_argument(
-        "--enable_debug",
+        "--debug",
         action="store_true",
         help="Enable debug mode: set train batch size to 1, val batch size to 2, workers to 0",
     )
@@ -464,7 +470,7 @@ def parse_args(args):
 
 
 def train(config):
-    enable_debug = config.get("enable_debug", False)
+    enable_debug = config.get("debug", False)
 
     train_data = EfficientADCuvisDataset(
         config["datasets"]["train"]["root"],
@@ -542,7 +548,7 @@ def train(config):
 def main():
     args = get_arguments()
     config = parse_args(args)
-    config["enable_debug"] = args.enable_debug
+    config["debug"] = args.debug
     train(config)
 
 
