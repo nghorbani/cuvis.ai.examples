@@ -19,6 +19,7 @@ import yaml
 
 from cuvisai_examples.efficientad.data import EfficientADCuvisDataset
 from cuvisai_examples.efficientad.train import EfficientAD_lightning
+from torchmetrics.segmentation import DiceScore
 
 
 def get_arguments():
@@ -217,6 +218,8 @@ class Report:
         Generates the report. This consists of an inference of all cubes given. It creates images for each cube, showing the RGB image, a SWIR representation and the model prediction as well as some threshold images.
         :return:
         """
+        dice_metric = DiceScore(num_classes=2, average="micro")   # or "macro" depending on what you want
+
         if not os.path.exists(self.reporting_run_folder):
             os.makedirs(self.reporting_run_folder)
 
@@ -228,7 +231,7 @@ class Report:
         all_truths = []
         binary_truths = []
         all_scores = []
-        for dataset_path, labels_path in zip(config["datasets"], config["labels"]):
+        for dataset_path, labels_path in zip(self.config["datasets"], self.annotations):#self.config["labels"]):
             data_path = Path(dataset_path)
             cubes = glob.glob(str(data_path / "*" / "*.cu3s"))
             cube_names = [Path(image).name for image in cubes]
@@ -237,12 +240,13 @@ class Report:
 
             # create dataset and infer the cubes
             dataset = EfficientADCuvisDataset(
-                config["datasets"][0],
+                dataset_dir=self.config["datasets"][0],
                 mode="test",
-                mean=config["means"],
-                std=config["stds"],
-                normalize=config["normalize"],
-                max_img_shape=config["max_img_shape"],
+                mean=self.config["means"],
+                std=self.config["stds"],
+                normalize=self.config["normalize"],
+                max_img_shape=self.config["max_img_shape"],
+                # max_data_load=2,
             )
             test_loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
             pred = self.trainer.predict(self.model, test_loader)
@@ -286,16 +290,24 @@ class Report:
                 class_map=self.annotations,
                 normalize=False,
             )
+            
+            # binary_truths = binary_truths.astype(int)
 
             one_hot_pred = torch.nn.functional.one_hot(
                 torch.softmax(torch.tensor(all_scores), -1).type(torch.long),
                 num_classes=2,
             ).movedim(-1, 1)
-            one_hot_gt = torch.nn.functional.one_hot(
-                torch.tensor(binary_truths).type(torch.long), num_classes=2
-            ).movedim(-1, 1)
+            # one_hot_gt = torch.nn.functional.one_hot(
+            #     torch.tensor( [int(x) for x in binary_truths]).type(torch.long), num_classes=2
+            # ).movedim(-1, 1)
 
-            dice_score = torchmetrics.functional.dice(one_hot_pred, one_hot_gt)
+            targets = torch.as_tensor([x.astype(int) for x in binary_truths], dtype=torch.long)#.flatten()
+            one_hot_gt = torch.nn.functional.one_hot(targets, num_classes=2).movedim(-1, 1)
+
+
+            # dice_score = torchmetrics.functional.dice(one_hot_pred, one_hot_gt)
+            dice_score = dice_metric(one_hot_pred, one_hot_gt)
+
 
             metrics[dataset_name] = {
                 "overall_auc": float(roc_auc),
@@ -303,8 +315,11 @@ class Report:
                 "dice_score": float(dice_score),
             }
 
-        with open(self.reporting_run_folder / "metrics.yaml", "w") as f:
+        out_yaml = self.reporting_run_folder / "metrics.yaml"
+        os.makedirs(out_yaml.parent, exist_ok=True)
+        with open(out_yaml, "w") as f:
             yaml.dump(metrics, f)
+        print(f"Report created {out_yaml}")
 
     def create_inference_png(self, batch, pred, label, score, image_name):
         """
@@ -416,11 +431,15 @@ class Report:
         plt.grid()
         return plt
 
-
-if __name__ == "__main__":
+def main():
     args = get_arguments()
     config = parse_args(args)
     model = EfficientAD_lightning.load_from_checkpoint(config["checkpoint_to_load"], config=config)
-    trainer = L.Trainer(inference_mode=True, precision="16-mixed")
-    rep = Report(config, model, trainer, Path("../data/EAD_reporting/"))
+    trainer = L.Trainer(inference_mode=True, precision="16-mixed", logger=False)
+    report_dir = Path(config["checkpoint_to_load"]).parent.parent.parent.parent / "reports" / Path(config["name"]) / f"{Path(config["checkpoint_to_load"]).parent.stem}_{Path(config["checkpoint_to_load"]).stem}"
+    # report_yaml_path = report_dir /  Path(config["checkpoint_to_load"]).stem + ".yaml"
+    rep = Report(config, model, trainer, report_dir)
     rep.generate_report()
+    
+if __name__ == "__main__":
+    main()

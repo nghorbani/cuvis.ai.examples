@@ -31,6 +31,7 @@ dependencies = [
 [project.scripts]
 get-data = "cuvisai_examples.utils.get_data:main"
 efficientad-train = "cuvisai_examples.efficientad.train:main"
+efficientad-report = "cuvisai_examples.efficientad.reporting:main"
 
 # cuvisai-train = "cuvisai_examples.cli.train:main"
 # cuvisai-infer = "cuvisai_examples.cli.infer:main"

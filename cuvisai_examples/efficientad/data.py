@@ -95,7 +95,7 @@ class CubeDataset(Dataset):
                 self.file_paths = self.file_paths[:max_data_load]
             else:
                 # For test mode, prioritize non-defect samples for debugging
-                self.file_paths = [f for f in self.file_paths if "_ok_ok_" in f][:max_data_load]
+                self.file_paths = [f for f in self.file_paths if "_ok_ok_" in f][:max_data_load] + [f for f in self.file_paths if "_ok_ok_" not in f][:max_data_load]
 
         # For test mode, prepare ground truth masks
         if mode == "test":
@@ -268,8 +268,8 @@ class EfficientADCuvisDataset(Dataset):
     def __init__(
         self,
         dataset_dir: str,
-        imagenet_dir: str,
         mode: str,
+        imagenet_dir: str = None,
         imagenet_file_ending: str = ".npy",
         in_channels: int = 6,
         mean: list = None,

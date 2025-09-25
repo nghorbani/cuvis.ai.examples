@@ -5,3 +5,4 @@ data/
 .env
 workdir*/
 qdrant_storage/
+lightning_logs/

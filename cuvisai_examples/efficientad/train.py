@@ -515,12 +515,12 @@ def train(config):
         num_workers=0 if enable_debug else 4,
     )
 
-    # create custom callback to save a model checkpoint for every epoch
+    # create custom callback to save top-k model checkpoints based on AU-ROC (keep best 5)
     checkpoint_callback = ModelCheckpoint(
-        monitor="val_im/AU-ROC",  # Metric to monitor
+        monitor="val_im/AU-ROC",  # Metric to monitor (image-level AUROC)
         dirpath=config["ckpt_dir"] + "/" + config["name"],  # Directory to save checkpoints
         filename=config["name"] + "-{epoch:02d}-{val_im/AU-ROC:.2f}",  # Filename format
-        save_top_k=-1,  # Save all checkpoints
+        save_top_k=5,  # Keep only the best 5 checkpoints by monitored metric
         mode="max",
         verbose=True,
     )
