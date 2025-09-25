@@ -3,7 +3,7 @@ import itertools
 import random
 
 import lightning as L
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from lightning.pytorch.loggers import TensorBoardLogger
 from loguru import logger
 import matplotlib.pyplot as plt
@@ -317,23 +317,23 @@ class EfficientAD_lightning(L.LightningModule):
             weight_decay=self.weight_decay,
         )
 
-        # # Add learning rate scheduler as per implementation_plan_II
-        # def lr_lambda(step):
-        #     total_steps = self.config.get("max_steps", 70000)
-        #     threshold = int(total_steps * self.config.get("lr_reduce_at_pct", 0.95))
-        #     return 0.1 if step >= threshold else 1.0
+        # Use a ReduceLROnPlateau scheduler that reduces LR by factor 0.1 when
+        # the monitored validation AUROC ("val_im/AU-ROC") has not improved for 5 epochs.
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="max", factor=0.1, patience=5, 
+        )
 
-        # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
-
-        # return {
-        #     "optimizer": optimizer,
-        #     "lr_scheduler": {
-        #         "scheduler": scheduler,
-        #         "interval": "step",
-        #         "frequency": 1,
-        #     },
-        # }
-        return optimizer
+        # Return dict compatible with Lightning for ReduceLROnPlateau.
+        # Note: the "monitor" key is required for ReduceLROnPlateau schedulers.
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val_im/AU-ROC",
+                "interval": "epoch",
+                "frequency": 1,
+            },
+        }
 
     def _format_for_dice_score(self, pred: torch.Tensor, target: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Format tensors for DiceScore metric.
@@ -530,13 +530,24 @@ def train(config):
         model = EfficientAD_lightning.load_from_checkpoint(config["ckpt"], config=config)
     else:
         model = EfficientAD_lightning(config)
+
+    # EarlyStopping: stop training if val_im/AU-ROC does not improve for 10 epochs.
+    early_stop_callback = EarlyStopping(
+        monitor="val_im/AU-ROC", 
+        patience=10, 
+        mode="max", 
+        verbose=True,
+        check_on_train_epoch_end=False,  # Only check at the end of validation
+        check_finite=True  # Handle NaN values gracefully
+    )
+
     trainer = L.Trainer(
         logger=logger,
         max_epochs=config["max_epochs"],
         benchmark=False if enable_debug else True,
         precision="16-mixed",
         gradient_clip_val=0.5,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, early_stop_callback],
         limit_train_batches=1 if enable_debug else 1.0,
         limit_val_batches=2 if enable_debug else 1.0,
         fast_dev_run=True if enable_debug else False,
