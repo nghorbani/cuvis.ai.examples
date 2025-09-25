@@ -532,7 +532,7 @@ def train(config):
         model = EfficientAD_lightning(config)
     trainer = L.Trainer(
         logger=logger,
-        max_steps=config["max_steps"],
+        max_epochs=config["max_epochs"],
         benchmark=False if enable_debug else True,
         precision="16-mixed",
         gradient_clip_val=0.5,

@@ -29,7 +29,7 @@ model:
   use_imgnet_penalty: True # whether to use the imageNet loss penalty in training
 learning_rate: 0.0001
 weight_decay: 0.0001
-max_steps: 70000
+max_epochs: 100
 seed: 42
 
 ### TRAINING ###

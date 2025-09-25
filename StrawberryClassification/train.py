@@ -88,7 +88,7 @@ def main():
 
     trainer = L.Trainer(
         logger=logger,
-        max_steps=config["max_steps"],
+        max_epochs=config["max_epochs"],
         benchmark=True,
         precision="16-mixed",
         gradient_clip_val=0.5,

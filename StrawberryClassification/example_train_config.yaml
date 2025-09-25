@@ -4,7 +4,7 @@ name: example_train_name # name of this training run
 ckpt_dir: ../data/ckpts # directory to save the checkpoints to
 best_ckpt: strawberry_unet # path to the model checkpoint which should be used for interference
 logger_dir: ../data/logs # directory to save the logs / tensorboard files to
-max_steps: 200000
+max_epochs: 100
 pca_channels: 32 # dimension reduction done by the PCA this need to be dividable by 8
 cube_channels: 38 # number of input channels
 cube_size: [ 200,200 ] # size of the cube this also needs to be dividable by 8
