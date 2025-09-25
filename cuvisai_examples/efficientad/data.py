@@ -341,8 +341,8 @@ class EfficientADCuvisDataset(Dataset):
                 A.Compose(
                     [
                         A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.7),
-                        # A.RandomGamma(gamma_limit=(90, 110), p=0.5),
-                        A.MultiplicativeNoise(multiplier=(0.9, 1.1), per_channel=True, p=0.5),
+                        A.RandomGamma(gamma_limit=(90, 110), p=0.5),
+                        # A.MultiplicativeNoise(multiplier=(0.9, 1.1), per_channel=True, p=0.5),
                         # A.GaussNoise(var_limit=(1e-5, 5e-4), mean=0.0, p=0.3),
                         # A.CoarseDropout(max_holes=2, max_height=0.1, max_width=0.1, fill_value=0.0, p=0.2),
                     ],
