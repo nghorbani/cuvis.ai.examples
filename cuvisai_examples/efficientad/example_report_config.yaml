@@ -17,7 +17,7 @@ model:
   in_channels: 6 # number of input channels to the model
   use_imgnet_penalty: True # weather to use the imageNet loss penalty in training, this is set for compatibility reasons
 seed: 42
-checkpoint_to_load:  ./workdir/efficientad/checkpoints/Testrun/Testrun-epoch=84-val_im/AU-ROC=0.90.ckpt # path to the model checkpoint which should be used for interference
+checkpoint_to_load:  ./workdir/efficientad/checkpoints/Testrun/Testrun-epoch=44-val_im/AU-ROC=0.93.ckpt # path to the model checkpoint which should be used for interference
 # checkpoint_to_load: ./EAD_model_0.93_new.ckpt # path to the model checkpoint which should be used for interference
 
 ### REPORT ###

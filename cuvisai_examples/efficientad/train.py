@@ -317,19 +317,22 @@ class EfficientAD_lightning(L.LightningModule):
             weight_decay=self.weight_decay,
         )
 
-        # Use a ReduceLROnPlateau scheduler that reduces LR by factor 0.1 when
-        # the monitored validation AUROC ("val_im/AU-ROC") has not improved for 5 epochs.
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="max", factor=0.1, patience=5, 
-        )
-
-        # Return dict compatible with Lightning for ReduceLROnPlateau.
-        # Note: the "monitor" key is required for ReduceLROnPlateau schedulers.
+        # Reduce LR once when training reaches 70% of total epochs by factor 0.1.
+        # This implements a single-step reduction: until the threshold epoch the
+        # LR is unchanged (factor 1.0), afterwards it is scaled by 0.1.
+        max_epochs = self.config.get("max_epochs", 100)
+        threshold_epoch = int(max_epochs * 0.7)
+ 
+        def _lr_lambda(epoch: int):
+            # epoch is 0-based; perform the reduction once epoch reaches threshold_epoch
+            return 1.0 if epoch < threshold_epoch else 0.1
+ 
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=_lr_lambda)
+ 
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "monitor": "val_im/AU-ROC",
                 "interval": "epoch",
                 "frequency": 1,
             },
@@ -534,7 +537,7 @@ def train(config):
     # EarlyStopping: stop training if val_im/AU-ROC does not improve for 10 epochs.
     early_stop_callback = EarlyStopping(
         monitor="val_im/AU-ROC", 
-        patience=10, 
+        patience=20, 
         mode="max", 
         verbose=True,
         check_on_train_epoch_end=False,  # Only check at the end of validation
