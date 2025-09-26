@@ -115,7 +115,10 @@ class CubeDataset(Dataset):
         file_path = self.file_paths[idx]
 
         # Load cube data
-        cube = np.load(file_path)["arr_0"]
+        try:
+            cube = np.load(file_path)["arr_0"]
+        except Exception as e:
+            raise RuntimeError(f"Error loading cube {file_path}: {e}") from e
         cube = cube[300:-300, 300:-300, :]  # Crop borders
         cube = np.transpose(cube, (2, 0, 1))  # H×W×C to C×H×W
         cube = torch.from_numpy(cube).float()
