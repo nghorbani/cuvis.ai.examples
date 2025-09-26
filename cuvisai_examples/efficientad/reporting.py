@@ -437,10 +437,12 @@ class Report:
 def main():
     args = get_arguments()
     config = parse_args(args)
-    model = EfficientAD_lightning.load_from_checkpoint(config["checkpoint_to_load"], config=config)
+    checkpoint_to_load = config["checkpoint_to_load"]
+    assert os.path.exists(checkpoint_to_load), f"Checkpoint {checkpoint_to_load} does not exist"
+    # load the model
+    model = EfficientAD_lightning.load_from_checkpoint(checkpoint_to_load, config=config)
     trainer = L.Trainer(inference_mode=True, precision="16-mixed", logger=False)
-    report_dir = Path(config["checkpoint_to_load"]).parent.parent.parent.parent / "reports" / Path(config["name"]) / f"{Path(config["checkpoint_to_load"]).parent.stem}_{Path(config["checkpoint_to_load"]).stem}"
-    # report_yaml_path = report_dir /  Path(config["checkpoint_to_load"]).stem + ".yaml"
+    report_dir = Path(checkpoint_to_load).parent.parent.parent.parent / "reports" / Path(config["name"]) / f"{Path(checkpoint_to_load).parent.stem}_{Path(checkpoint_to_load).stem}"
     rep = Report(config, model, trainer, report_dir)
     rep.generate_report()
     

@@ -85,7 +85,7 @@ The script will create a folder at a specified location, infer the given dataset
 output.
 
 ```
-reporting.py -c example_report_config.yaml
+uv run efficientad-report -c ./cuvisai_examples/efficientad/example_report_config.yaml
 ```
 
 ## Results
